@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">PDF Reader</string>
+    <string name="back_button">Back button</string>
+    <string name="menu_button">Menu button</string>
+</resources>

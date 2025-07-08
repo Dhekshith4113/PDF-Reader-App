@@ -1,0 +1,49 @@
+package com.example.pdfreader
+
+import android.content.Context
+import android.content.SharedPreferences
+
+object SharedPreferencesManager {
+    private const val PREFS_NAME = "AppPrefs"
+    private const val KEY_LEFT_TO_RIGHT_MODE = "left_to_right_mode"
+    private const val KEY_ONE_PAGE_MODE = "one_page_mode"
+    private const val KEY_COVER_PAGE_SEPARATE = "cover_page_separate"
+    private const val KEY_VERTICAL_SCROLL_MODE = "vertical_scroll_mode"
+
+    private fun getPrefs(context: Context): SharedPreferences {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    fun isLeftToRightMode(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_LEFT_TO_RIGHT_MODE, true)
+    }
+
+    fun setLeftToRightMode(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_LEFT_TO_RIGHT_MODE, enabled).apply()
+    }
+
+    fun isOnePageMode(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_ONE_PAGE_MODE, true)
+    }
+
+    fun setOnePageMode(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_ONE_PAGE_MODE, enabled).apply()
+    }
+
+    fun isCoverPageSeparate(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_COVER_PAGE_SEPARATE, true)
+    }
+
+    fun setCoverPageSeparate(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_COVER_PAGE_SEPARATE, enabled).apply()
+    }
+
+    fun isVerticalScrollMode(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_VERTICAL_SCROLL_MODE, false)
+    }
+
+    fun setVerticalScrollMode(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_VERTICAL_SCROLL_MODE, enabled).apply()
+    }
+
+}
