@@ -11,6 +11,7 @@ object SharedPreferencesManager {
     private const val KEY_VERTICAL_SCROLL_MODE = "vertical_scroll_mode"
     private const val KEY_URI = "uri"
     private const val KEY_PAGE_NUMBER = "page_number"
+    private const val KEY_RESOLUTION = "resolution"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -62,6 +63,14 @@ object SharedPreferencesManager {
 
     fun savePageNumber(context: Context, pageNumber: Int) {
         getPrefs(context).edit().putInt(KEY_PAGE_NUMBER, pageNumber).apply()
+    }
+
+    fun getResolution(context: Context): String? {
+        return getPrefs(context).getString(KEY_RESOLUTION, "LOW")
+    }
+
+    fun setResolution(context: Context, resolution: String) {
+        getPrefs(context).edit().putString(KEY_RESOLUTION, resolution).apply()
     }
 
 }

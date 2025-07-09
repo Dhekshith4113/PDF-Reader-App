@@ -2,6 +2,7 @@ package com.example.pdfreader
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
@@ -11,7 +12,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
+import android.view.Surface
 import android.view.View
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -32,12 +35,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bottomBar: LinearLayout
     private lateinit var btnBack: ImageButton
     private lateinit var btnMenu: ImageButton
-    private lateinit var btnZoomReset: ImageButton
     private lateinit var tvTitle: TextView
     private lateinit var tvOpenFile: TextView
     private lateinit var tvPageIndicator: TextView
     private lateinit var seekBar: SeekBar
     private lateinit var viewPager: ViewPager2
+//    private var currentOrientation = Surface.ROTATION_0
 
     private val PICK_PDF_FILE = 2
     private var pdfRenderer: PdfRenderer? = null
@@ -69,6 +72,36 @@ class MainActivity : AppCompatActivity() {
             }
             loadFile(pdfUri)
         }
+
+//        val rootView = findViewById<View>(android.R.id.content)
+//        var lastRotation = getScreenRotation()
+
+//        rootView.viewTreeObserver.addOnGlobalLayoutListener {
+//            val newRotation = getScreenRotation()
+//            if (newRotation != lastRotation) {
+//                lastRotation = newRotation
+//                currentOrientation = newRotation
+//                onRotationChanged(newRotation)
+//            }
+//        }
+    }
+
+    private fun getScreenRotation(): Int {
+        val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        return wm.defaultDisplay.rotation
+    }
+
+    private fun onRotationChanged(rotation: Int) {
+        val rotationStr = when (rotation) {
+            Surface.ROTATION_0 -> "Portrait (0°)"
+            Surface.ROTATION_90 -> "Landscape (90°)"
+            Surface.ROTATION_180 -> "Portrait Upside Down (180°)"
+            Surface.ROTATION_270 -> "Landscape (270°)"
+            else -> "Unknown"
+        }
+        Log.d("Orientation", "Rotation changed: $rotationStr")
+
+        setupPdfViewer()
     }
 
     private fun initViews() {
@@ -76,7 +109,6 @@ class MainActivity : AppCompatActivity() {
         bottomBar = findViewById(R.id.bottomBar)
         btnBack = findViewById(R.id.btnBack)
         btnMenu = findViewById(R.id.btnMenu)
-        btnZoomReset = findViewById(R.id.btnZoomReset)
         tvTitle = findViewById(R.id.tvTitle)
         tvOpenFile = findViewById(R.id.tvOpenFile)
         tvPageIndicator = findViewById(R.id.tvPageIndicator)
@@ -89,10 +121,6 @@ class MainActivity : AppCompatActivity() {
 
         btnMenu.setOnClickListener {
             showMenuDialog()
-        }
-
-        btnZoomReset.setOnClickListener {
-            resetCurrentPageZoom()
         }
 
         tvOpenFile.setOnClickListener {
@@ -117,6 +145,9 @@ class MainActivity : AppCompatActivity() {
         val switchToggle = dialogView.findViewById<SwitchCompat>(R.id.switchToggle)
         val btnVertical = dialogView.findViewById<RadioButton>(R.id.btnVertical)
         val btnHorizontal = dialogView.findViewById<RadioButton>(R.id.btnHorizontal)
+        val btnLow = dialogView.findViewById<RadioButton>(R.id.btnLow)
+        val btnMedium = dialogView.findViewById<RadioButton>(R.id.btnMedium)
+        val btnHigh = dialogView.findViewById<RadioButton>(R.id.btnHigh)
         val btnClose = dialogView.findViewById<Button>(R.id.btnClose)
 
         btnLTR.isChecked = SharedPreferencesManager.isLeftToRightMode(this)
@@ -129,10 +160,25 @@ class MainActivity : AppCompatActivity() {
         btnVertical.isChecked = SharedPreferencesManager.isVerticalScrollMode(this)
         btnHorizontal.isChecked = !SharedPreferencesManager.isVerticalScrollMode(this)
 
+        if (SharedPreferencesManager.getResolution(this) == "LOW") {
+            btnLow.isChecked = true
+            btnMedium.isChecked = false
+            btnHigh.isChecked = false
+        } else if (SharedPreferencesManager.getResolution(this) == "MEDIUM") {
+            btnLow.isChecked = false
+            btnMedium.isChecked = true
+            btnHigh.isChecked = false
+        } else if (SharedPreferencesManager.getResolution(this) == "HIGH") {
+            btnLow.isChecked = false
+            btnMedium.isChecked = false
+            btnHigh.isChecked = true
+        }
+
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
         tvOpenFile.setOnClickListener {
             openFilePicker()
+            dialog.dismiss()
         }
 
         btnLTR.setOnClickListener {
@@ -151,19 +197,18 @@ class MainActivity : AppCompatActivity() {
             btnOnePage.isChecked = true
             btnTwoPage.isChecked = false
             SharedPreferencesManager.setOnePageMode(this, true)
-            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
-                Log.d("PageNumber", "One: True : current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) - 1}")
-                SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) - 1)
-            } else {
-                if (viewPager.currentItem % 2 == 0) {
-                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) + 1}")
-                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) + 1)
-                } else {
-                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem * 2}")
-                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem * 2)
-                }
-            }
-
+//            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+//                Log.d("PageNumber", "One: True : current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) - 1}")
+//                SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) - 1)
+//            } else {
+//                if (viewPager.currentItem % 2 == 0) {
+//                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) + 1}")
+//                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) + 1)
+//                } else {
+//                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem * 2}")
+//                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem * 2)
+//                }
+//            }
             switchView.visibility = View.GONE
             switchLayout.visibility = View.GONE
         }
@@ -172,18 +217,18 @@ class MainActivity : AppCompatActivity() {
             btnOnePage.isChecked = false
             btnTwoPage.isChecked = true
             SharedPreferencesManager.setOnePageMode(this, false)
-            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
-                if (viewPager.currentItem % 2 == 0) {
-                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem / 2}")
-                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
-                } else {
-                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem / 2) + 1}")
-                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem / 2) + 1)
-                }
-            } else {
-                Log.d("PageNumber", "Two: False: current: ${viewPager.currentItem}  saved as: ${viewPager.currentItem / 2}")
-                SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
-            }
+//            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+//                if (viewPager.currentItem % 2 == 0) {
+//                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem / 2}")
+//                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
+//                } else {
+//                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem / 2) + 1}")
+//                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem / 2) + 1)
+//                }
+//            } else {
+//                Log.d("PageNumber", "Two: False: current: ${viewPager.currentItem}  saved as: ${viewPager.currentItem / 2}")
+//                SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
+//            }
             switchView.visibility = View.VISIBLE
             switchLayout.visibility = View.VISIBLE
         }
@@ -208,11 +253,60 @@ class MainActivity : AppCompatActivity() {
             SharedPreferencesManager.setVerticalScrollMode(this, false)
         }
 
+        btnLow.setOnClickListener {
+            btnLow.isChecked = true
+            btnMedium.isChecked = false
+            btnHigh.isChecked = false
+            SharedPreferencesManager.setResolution(this, "LOW")
+        }
+
+        btnMedium.setOnClickListener {
+            btnLow.isChecked = false
+            btnMedium.isChecked = true
+            btnHigh.isChecked = false
+            SharedPreferencesManager.setResolution(this, "MEDIUM")
+        }
+
+        btnHigh.setOnClickListener {
+            btnLow.isChecked = false
+            btnMedium.isChecked = false
+            btnHigh.isChecked = true
+            SharedPreferencesManager.setResolution(this, "HIGH")
+        }
+
         btnClose.setOnClickListener {
             dialog.dismiss()
         }
 
         dialog.setOnDismissListener {
+            if (SharedPreferencesManager.isOnePageMode(this)) {
+                if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+                    Log.d("PageNumber", "One: True : current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) - 1}")
+                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) - 1)
+                } else {
+                    if (viewPager.currentItem % 2 == 0) {
+                        Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) + 1}")
+                        SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) + 1)
+                    } else {
+                        Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem * 2}")
+                        SharedPreferencesManager.savePageNumber(this, viewPager.currentItem * 2)
+                    }
+                }
+            } else {
+                if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+                    if (viewPager.currentItem % 2 == 0) {
+                        Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem / 2}")
+                        SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
+                    } else {
+                        Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem / 2) + 1}")
+                        SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem / 2) + 1)
+                    }
+                } else {
+                    Log.d("PageNumber", "Two: False: current: ${viewPager.currentItem}  saved as: ${viewPager.currentItem / 2}")
+                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
+                }
+            }
+
             setupPdfViewer()
         }
 
