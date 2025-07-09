@@ -51,6 +51,9 @@ class PdfPageAdapter(
     ) : RecyclerView.ViewHolder(itemView) {
 
         private val zoomableImageView: ZoomableImageView = itemView.findViewById(R.id.zoomableImageView)
+        
+        // Expose the ZoomableImageView for external access (e.g., reset zoom)
+        fun getZoomableImageView(): ZoomableImageView = zoomableImageView
 
         init {
             zoomableImageView.setOnLongClickListener {
@@ -105,8 +108,8 @@ class PdfPageAdapter(
 
         private fun createBitmapFromPage(page: PdfRenderer.Page): Bitmap {
             val bitmap = Bitmap.createBitmap(
-                page.width * 2,
-                page.height * 2,
+                page.width * 4, // Increased from 2x to 4x for better resolution
+                page.height * 4, // Increased from 2x to 4x for better resolution
                 Bitmap.Config.ARGB_8888
             )
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
@@ -130,8 +133,8 @@ class PdfPageAdapter(
             val pageHeight = leftPage?.height ?: rightPage?.height ?: 0
 
             val combinedBitmap = Bitmap.createBitmap(
-                pageWidth * 4,
-                pageHeight * 2,
+                pageWidth * 8, // Increased from 4x to 8x for better resolution in dual page
+                pageHeight * 4, // Increased from 2x to 4x for better resolution
                 Bitmap.Config.ARGB_8888
             )
 
@@ -146,7 +149,7 @@ class PdfPageAdapter(
 
             rightPage?.let { page ->
                 val rightBitmap = createBitmapFromPage(page)
-                canvas.drawBitmap(rightBitmap, pageWidth.toFloat(), 0f, null)
+                canvas.drawBitmap(rightBitmap, (pageWidth * 4).toFloat(), 0f, null) // Adjusted for 4x resolution
                 page.close()
             }
 

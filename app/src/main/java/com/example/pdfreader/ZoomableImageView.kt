@@ -29,7 +29,7 @@ class ZoomableImageView @JvmOverloads constructor(
     private var translateY = 0f
     private var previousTranslateX = 0f
     private var previousTranslateY = 0f
-    private var maxZoom = 10f
+    private var maxZoom = 25f // Increased max zoom for better pinch zoom range
     private var minZoom = 1f
     private var redundantXSpace = 0f
     private var redundantYSpace = 0f
@@ -65,6 +65,16 @@ class ZoomableImageView @JvmOverloads constructor(
         onZoomChangeListener = listener
     }
 
+    // Add method to reset zoom
+    fun resetZoom() {
+        saveScale = minZoom
+        matrix.setScale(scale, scale)
+        matrix.postTranslate(redundantXSpace, redundantYSpace)
+        imageMatrix = matrix
+        onZoomChangeListener?.invoke(false)
+        invalidate()
+    }
+
     private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
             mode = ZOOM
@@ -76,6 +86,7 @@ class ZoomableImageView @JvmOverloads constructor(
             val origScale = saveScale
             saveScale *= scaleFactor
 
+            // Improved zoom limits with better proportional scaling
             if (saveScale > maxZoom) {
                 saveScale = maxZoom
                 scaleFactor = maxZoom / origScale
@@ -87,6 +98,7 @@ class ZoomableImageView @JvmOverloads constructor(
             right = width * saveScale - width - (2 * redundantXSpace * saveScale)
             bottom = height * saveScale - height - (2 * redundantYSpace * saveScale)
 
+            // Improved scaling logic for better centering and proportional zoom
             if (originalBitmapWidth * saveScale <= width || originalBitmapHeight * saveScale <= height) {
                 matrix.postScale(scaleFactor, scaleFactor, width / 2, height / 2)
                 if (scaleFactor < 1) {
@@ -108,6 +120,7 @@ class ZoomableImageView @JvmOverloads constructor(
                     }
                 }
             } else {
+                // Use detector focus point for more responsive pinch zoom
                 matrix.postScale(scaleFactor, scaleFactor, detector.focusX, detector.focusY)
                 matrix.getValues(matrixValues)
                 val x = matrixValues[Matrix.MTRANS_X]
@@ -131,14 +144,36 @@ class ZoomableImageView @JvmOverloads constructor(
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
             val origScale = saveScale
-            val targetScale = if (saveScale == minZoom) maxZoom else minZoom
+            val targetScale = if (saveScale == minZoom) 3f else minZoom // Zoom to 3x on double tap
 
             val deltaScale = targetScale / origScale
-            matrix.postScale(deltaScale, deltaScale, e.x, e.y)
+            
+            // Get the current matrix values to understand current translation
+            matrix.getValues(matrixValues)
+            val currentTransX = matrixValues[Matrix.MTRANS_X]
+            val currentTransY = matrixValues[Matrix.MTRANS_Y]
+            
+            if (targetScale > minZoom) {
+                // Zooming in - center on tap point
+                // Calculate where the tap point will be after scaling
+                val newX = (e.x - currentTransX) * deltaScale + currentTransX
+                val newY = (e.y - currentTransY) * deltaScale + currentTransY
+                
+                // Apply scale first
+                matrix.postScale(deltaScale, deltaScale, e.x, e.y)
+                
+                // Adjust translation to keep the tapped point in view
+                val adjustX = e.x - newX
+                val adjustY = e.y - newY
+                matrix.postTranslate(adjustX, adjustY)
+            } else {
+                // Zooming out - center the image
+                matrix.setScale(scale, scale)
+                matrix.postTranslate(redundantXSpace, redundantYSpace)
+            }
+            
             saveScale = targetScale
-
             fixTranslation()
-
             onZoomChangeListener?.invoke(saveScale > minZoom)
             return true
         }
@@ -163,7 +198,7 @@ class ZoomableImageView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (mode == DRAG) {
+                if (mode == DRAG && saveScale > minZoom) { // Only allow drag when zoomed in
                     translateX = previousTranslateX + currentX - startX
                     translateY = previousTranslateY + currentY - startY
 
@@ -174,10 +209,8 @@ class ZoomableImageView @JvmOverloads constructor(
                     val deltaX = translateX - x
                     val deltaY = translateY - y
 
-                    if (saveScale > minZoom) {
-                        matrix.postTranslate(deltaX, deltaY)
-                        fixTranslation()
-                    }
+                    matrix.postTranslate(deltaX, deltaY)
+                    fixTranslation()
                 }
             }
 
@@ -214,9 +247,11 @@ class ZoomableImageView @JvmOverloads constructor(
         val maxTrans: Float
 
         if (contentSize <= viewSize) {
-            minTrans = 0f
-            maxTrans = viewSize - contentSize
+            // Content smaller than view - center it
+            minTrans = (viewSize - contentSize) / 2
+            maxTrans = (viewSize - contentSize) / 2
         } else {
+            // Content larger than view - allow full range
             minTrans = viewSize - contentSize
             maxTrans = 0f
         }

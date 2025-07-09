@@ -31,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bottomBar: LinearLayout
     private lateinit var btnBack: ImageButton
     private lateinit var btnMenu: ImageButton
+    private lateinit var btnZoomReset: ImageButton
     private lateinit var tvTitle: TextView
     private lateinit var tvOpenFile: TextView
     private lateinit var tvPageIndicator: TextView
@@ -74,6 +75,7 @@ class MainActivity : AppCompatActivity() {
         bottomBar = findViewById(R.id.bottomBar)
         btnBack = findViewById(R.id.btnBack)
         btnMenu = findViewById(R.id.btnMenu)
+        btnZoomReset = findViewById(R.id.btnZoomReset)
         tvTitle = findViewById(R.id.tvTitle)
         tvOpenFile = findViewById(R.id.tvOpenFile)
         tvPageIndicator = findViewById(R.id.tvPageIndicator)
@@ -86,6 +88,10 @@ class MainActivity : AppCompatActivity() {
 
         btnMenu.setOnClickListener {
             showMenuDialog()
+        }
+
+        btnZoomReset.setOnClickListener {
+            resetCurrentPageZoom()
         }
 
         tvOpenFile.setOnClickListener {
@@ -261,8 +267,10 @@ class MainActivity : AppCompatActivity() {
             isOnePageMode,
             isCoverPageSeparate
         ) {
-            Log.d("MainActivity", "Long press detected")
-            toggleBarsVisibility()
+            Log.d("MainActivity", "Long press detected - toggling bars")
+            runOnUiThread {
+                toggleBarsVisibility()
+            }
         }
 
         viewPager.adapter = pdfAdapter
@@ -323,6 +331,13 @@ class MainActivity : AppCompatActivity() {
     // Add this method to handle zoom state and disable ViewPager2 scrolling
     fun handleZoomState(isZoomed: Boolean) {
         viewPager.isUserInputEnabled = !isZoomed
+    }
+
+    // Add method to reset zoom for current page
+    private fun resetCurrentPageZoom() {
+        val recyclerView = viewPager.getChildAt(0) as? androidx.recyclerview.widget.RecyclerView
+        val viewHolder = recyclerView?.findViewHolderForAdapterPosition(viewPager.currentItem) as? PdfPageAdapter.PdfPageViewHolder
+        viewHolder?.getZoomableImageView()?.resetZoom()
     }
 
     override fun onDestroy() {
