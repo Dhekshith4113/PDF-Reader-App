@@ -151,6 +151,18 @@ class MainActivity : AppCompatActivity() {
             btnOnePage.isChecked = true
             btnTwoPage.isChecked = false
             SharedPreferencesManager.setOnePageMode(this, true)
+            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+                Log.d("PageNumber", "One: True : current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) - 1}")
+                SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) - 1)
+            } else {
+                if (viewPager.currentItem % 2 == 0) {
+                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) + 1}")
+                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) + 1)
+                } else {
+                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem * 2}")
+                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem * 2)
+                }
+            }
 
             switchView.visibility = View.GONE
             switchLayout.visibility = View.GONE
@@ -160,7 +172,18 @@ class MainActivity : AppCompatActivity() {
             btnOnePage.isChecked = false
             btnTwoPage.isChecked = true
             SharedPreferencesManager.setOnePageMode(this, false)
-
+            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+                if (viewPager.currentItem % 2 == 0) {
+                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem / 2}")
+                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
+                } else {
+                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem / 2) + 1}")
+                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem / 2) + 1)
+                }
+            } else {
+                Log.d("PageNumber", "Two: False: current: ${viewPager.currentItem}  saved as: ${viewPager.currentItem / 2}")
+                SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
+            }
             switchView.visibility = View.VISIBLE
             switchLayout.visibility = View.VISIBLE
         }
@@ -281,10 +304,14 @@ class MainActivity : AppCompatActivity() {
 
         // Setup page indicator and seekbar
         val totalPages = pdfAdapter?.itemCount ?: 0
-        updatePageIndicator(0, totalPages)
+        val currentPage = SharedPreferencesManager.loadPageNumber(this)
+        Log.d("PageNumber", "Loaded as: $currentPage")
+
+        viewPager.setCurrentItem(currentPage, false)
+        updatePageIndicator(currentPage, totalPages)
 
         seekBar.max = maxOf(0, totalPages - 1)
-        seekBar.progress = 0
+        seekBar.progress = currentPage
 
         // Setup ViewPager2 callback
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
@@ -309,7 +336,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updatePageIndicator(currentPage: Int, totalPages: Int) {
-        tvPageIndicator.text = "${currentPage + 1} / $totalPages"
+        tvPageIndicator.text = "${currentPage} / ${totalPages - 1}"
     }
 
     private fun toggleBarsVisibility() {

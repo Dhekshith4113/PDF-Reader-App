@@ -10,6 +10,7 @@ object SharedPreferencesManager {
     private const val KEY_COVER_PAGE_SEPARATE = "cover_page_separate"
     private const val KEY_VERTICAL_SCROLL_MODE = "vertical_scroll_mode"
     private const val KEY_URI = "uri"
+    private const val KEY_PAGE_NUMBER = "page_number"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -47,12 +48,20 @@ object SharedPreferencesManager {
         getPrefs(context).edit().putBoolean(KEY_VERTICAL_SCROLL_MODE, enabled).apply()
     }
 
+    fun loadUri(context: Context): String? {
+        return getPrefs(context).getString(KEY_URI, null)
+    }
+
     fun saveUri(context: Context, uri: String) {
         getPrefs(context).edit().putString(KEY_URI, uri).apply()
     }
 
-    fun loadUri(context: Context): String? {
-        return getPrefs(context).getString(KEY_URI, null)
+    fun loadPageNumber(context: Context): Int {
+        return getPrefs(context).getInt(KEY_PAGE_NUMBER, 0)
+    }
+
+    fun savePageNumber(context: Context, pageNumber: Int) {
+        getPrefs(context).edit().putInt(KEY_PAGE_NUMBER, pageNumber).apply()
     }
 
 }

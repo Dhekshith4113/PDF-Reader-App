@@ -107,8 +107,8 @@ class PdfPageAdapter(
 
         private fun createBitmapFromPage(page: PdfRenderer.Page): Bitmap {
             val bitmap = Bitmap.createBitmap(
-                page.width * 4, // Increased from 2x to 4x for better resolution
-                page.height * 4, // Increased from 2x to 4x for better resolution
+                page.width * 2, // Increased from 1x to 2x for better resolution
+                page.height * 2, // Increased from 1x to 2x for better resolution
                 Bitmap.Config.ARGB_8888
             )
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
@@ -132,8 +132,8 @@ class PdfPageAdapter(
             val pageHeight = leftPage?.height ?: rightPage?.height ?: 0
 
             val combinedBitmap = Bitmap.createBitmap(
-                pageWidth * 8, // Increased from 4x to 8x for better resolution in dual page
-                pageHeight * 4, // Increased from 2x to 4x for better resolution
+                pageWidth * 4, // Increased from 2x to 4x for better resolution in dual page
+                pageHeight * 2, // Increased from 1x to 2x for better resolution
                 Bitmap.Config.ARGB_8888
             )
 
@@ -148,7 +148,7 @@ class PdfPageAdapter(
 
             rightPage?.let { page ->
                 val rightBitmap = createBitmapFromPage(page)
-                canvas.drawBitmap(rightBitmap, (pageWidth * 4).toFloat(), 0f, null) // Adjusted for 4x resolution
+                canvas.drawBitmap(rightBitmap, (pageWidth * 2).toFloat(), 0f, null) // Adjusted for 2x resolution
                 page.close()
             }
 
