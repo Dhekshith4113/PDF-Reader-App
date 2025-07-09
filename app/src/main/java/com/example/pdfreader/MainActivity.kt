@@ -388,9 +388,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        val uri = SharedPreferencesManager.loadUri(this)
-        Uri.parse(uri)
-        loadFile(Uri.parse(uri))
+
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            Toast.makeText(this, "Landscape mode", Toast.LENGTH_SHORT).show()
+        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            Toast.makeText(this, "Portrait mode", Toast.LENGTH_SHORT).show()
+        }
+
     }
 
 }
