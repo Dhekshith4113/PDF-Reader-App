@@ -9,6 +9,7 @@ object SharedPreferencesManager {
     private const val KEY_ONE_PAGE_MODE = "one_page_mode"
     private const val KEY_COVER_PAGE_SEPARATE = "cover_page_separate"
     private const val KEY_VERTICAL_SCROLL_MODE = "vertical_scroll_mode"
+    private const val KEY_URI = "uri"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -44,6 +45,14 @@ object SharedPreferencesManager {
 
     fun setVerticalScrollMode(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_VERTICAL_SCROLL_MODE, enabled).apply()
+    }
+
+    fun saveUri(context: Context, uri: String) {
+        getPrefs(context).edit().putString(KEY_URI, uri).apply()
+    }
+
+    fun loadUri(context: Context): String? {
+        return getPrefs(context).getString(KEY_URI, null)
     }
 
 }

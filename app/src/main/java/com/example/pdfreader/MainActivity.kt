@@ -3,6 +3,7 @@ package com.example.pdfreader
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.pdf.PdfRenderer
@@ -205,6 +206,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadFile(uri: Uri) {
         try {
+            SharedPreferencesManager.saveUri(this, uri.toString())
             tvOpenFile.visibility = View.GONE
             viewPager.visibility = View.VISIBLE
 
@@ -260,6 +262,8 @@ class MainActivity : AppCompatActivity() {
         } else {
             View.LAYOUT_DIRECTION_RTL
         }
+
+        seekBar.layoutDirection = viewPager.layoutDirection
 
         // Create adapter
         pdfAdapter = PdfPageAdapter(
@@ -353,6 +357,13 @@ class MainActivity : AppCompatActivity() {
                 loadFile(uri)
             }
         }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val uri = SharedPreferencesManager.loadUri(this)
+        Uri.parse(uri)
+        loadFile(Uri.parse(uri))
     }
 
 }

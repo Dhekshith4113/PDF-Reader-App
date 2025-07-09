@@ -40,12 +40,14 @@ class ZoomableImageView @JvmOverloads constructor(
     private var bottom = 0f
     private var originalBitmapWidth = 0f
     private var originalBitmapHeight = 0f
+    private var isLongPressed = false
 
     private val matrix = Matrix()
     private val matrixValues = FloatArray(9)
     private var gestureDetector: GestureDetector? = null
     private var scaleGestureDetector: ScaleGestureDetector? = null
     private var onZoomChangeListener: ((Boolean) -> Unit)? = null
+    private var onLongPressToggle: ((Boolean) -> Unit)? = null
 
     companion object {
         private const val NONE = 0
@@ -63,6 +65,10 @@ class ZoomableImageView @JvmOverloads constructor(
 
     fun setOnZoomChangeListener(listener: (Boolean) -> Unit) {
         onZoomChangeListener = listener
+    }
+
+    fun setOnLongPressToggleListener(listener: (Boolean) -> Unit) {
+        onLongPressToggle = listener
     }
 
     // Add method to reset zoom
@@ -144,38 +150,28 @@ class ZoomableImageView @JvmOverloads constructor(
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
             val origScale = saveScale
-            val targetScale = if (saveScale == minZoom) 3f else minZoom // Zoom to 3x on double tap
-
+            val targetScale = if (saveScale == minZoom) 2f else minZoom
             val deltaScale = targetScale / origScale
-            
-            // Get the current matrix values to understand current translation
-            matrix.getValues(matrixValues)
-            val currentTransX = matrixValues[Matrix.MTRANS_X]
-            val currentTransY = matrixValues[Matrix.MTRANS_Y]
-            
-            if (targetScale > minZoom) {
-                // Zooming in - center on tap point
-                // Calculate where the tap point will be after scaling
-                val newX = (e.x - currentTransX) * deltaScale + currentTransX
-                val newY = (e.y - currentTransY) * deltaScale + currentTransY
-                
-                // Apply scale first
-                matrix.postScale(deltaScale, deltaScale, e.x, e.y)
-                
-                // Adjust translation to keep the tapped point in view
-                val adjustX = e.x - newX
-                val adjustY = e.y - newY
-                matrix.postTranslate(adjustX, adjustY)
-            } else {
-                // Zooming out - center the image
-                matrix.setScale(scale, scale)
-                matrix.postTranslate(redundantXSpace, redundantYSpace)
-            }
-            
+
+            matrix.postScale(deltaScale, deltaScale, e.x, e.y)
+
             saveScale = targetScale
             fixTranslation()
+
+            matrix.getValues(matrixValues)
+            translateX = matrixValues[Matrix.MTRANS_X]
+            translateY = matrixValues[Matrix.MTRANS_Y]
+            previousTranslateX = translateX
+            previousTranslateY = translateY
+
             onZoomChangeListener?.invoke(saveScale > minZoom)
             return true
+        }
+
+        override fun onLongPress(e: MotionEvent) {
+            super.onLongPress(e)
+            isLongPressed = !isLongPressed
+            onLongPressToggle?.invoke(isLongPressed) // Return the toggled value
         }
     }
 
@@ -298,6 +294,8 @@ class ZoomableImageView @JvmOverloads constructor(
             bottom = height * saveScale - height - (2 * redundantYSpace * saveScale)
 
             imageMatrix = matrix
+
+//            onZoomChangeListener?.invoke(scale > minZoom)
         }
     }
 }

@@ -56,10 +56,9 @@ class PdfPageAdapter(
         fun getZoomableImageView(): ZoomableImageView = zoomableImageView
 
         init {
-            zoomableImageView.setOnLongClickListener {
+            zoomableImageView.setOnLongPressToggleListener {
                 Log.d("PdfPageAdapter", "Long press detected")
                 onLongPress()
-                true
             }
 
             zoomableImageView.setOnZoomChangeListener { isZoomed ->
