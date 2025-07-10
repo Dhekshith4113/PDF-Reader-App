@@ -141,6 +141,7 @@ class PdfPageAdapter(
             } else null
 
             val pageWidth = leftPage?.width ?: rightPage?.width ?: 0
+//            val totalWidth = (leftPage?.width ?: 0) + (rightPage?.width ?: 0)
             val pageHeight = leftPage?.height ?: rightPage?.height ?: 0
 
             val combinedBitmap = Bitmap.createBitmap(

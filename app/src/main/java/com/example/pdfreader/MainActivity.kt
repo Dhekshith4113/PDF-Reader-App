@@ -32,6 +32,7 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.indices
 import androidx.core.view.setPadding
 import androidx.viewpager2.widget.ViewPager2
 
@@ -123,6 +124,8 @@ class MainActivity : AppCompatActivity() {
                 SharedPreferencesManager.setLandscapeOrientation(this, true)
                 btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
             }
+            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
             setupPdfViewer()
         }
 
@@ -311,16 +314,32 @@ class MainActivity : AppCompatActivity() {
 
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
-        tvEnterPageNumber.text = "Enter page number (1 - ${pdfAdapter?.itemCount ?: 0})"
+        if (SharedPreferencesManager.isOnePageMode(this)) {
+            tvEnterPageNumber.text = "Enter page number (1 - ${pdfAdapter?.itemCount ?: 0})"
+        } else {
+            tvEnterPageNumber.text = "Enter page number (1 - ${(pdfAdapter?.itemCount)?.times(2) ?: 0})"
+        }
 
         etPageNumber.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 if (!s.isNullOrEmpty() && s.toString().toInt() > 0 && s.toString().toInt() <= (pdfAdapter?.itemCount ?: 0)) {
-                    btnJump.isEnabled = true
-                    btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.background_color))
-                    btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.text_color))
+                    if (SharedPreferencesManager.isOnePageMode(this@MainActivity)) {
+                        btnJump.isEnabled = true
+                        btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.background_color))
+                        btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.text_color))
+                    } else {
+                        if (SharedPreferencesManager.isCoverPageSeparate(this@MainActivity)) {
+                            btnJump.isEnabled = true
+                            btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.background_color))
+                            btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.text_color))
+                        } else {
+                            btnJump.isEnabled = true
+                            btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.background_color))
+                            btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.text_color))
+                        }
+                    }
                 } else {
                     btnJump.isEnabled = false
                     btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_color))
@@ -332,8 +351,23 @@ class MainActivity : AppCompatActivity() {
         })
 
         btnJump.setOnClickListener {
-            Log.d("PageNumber", "Jump to: ${(etPageNumber.text.toString().toInt()) - 1}")
-            viewPager.setCurrentItem((etPageNumber.text.toString().toInt()) - 1, false)
+            if (SharedPreferencesManager.isOnePageMode(this)) {
+                Log.d("PageNumber", "Jump to: ${(etPageNumber.text.toString().toInt()) - 1}")
+                viewPager.setCurrentItem((etPageNumber.text.toString().toInt()) - 1, false)
+            } else {
+                if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+                    Log.d("PageNumber", "Jump to: ${(etPageNumber.text.toString().toInt()) / 2}")
+                    viewPager.setCurrentItem((etPageNumber.text.toString().toInt()) / 2, false)
+                } else {
+                    if (etPageNumber.text.toString().toInt() % 2== 0) {
+                        Log.d("PageNumber", "Jump to: ${((etPageNumber.text.toString().toInt()) / 2) - 1}")
+                        viewPager.setCurrentItem(((etPageNumber.text.toString().toInt()) / 2) - 1, false)
+                    } else {
+                        Log.d("PageNumber", "Jump to: ${((etPageNumber.text.toString().toInt()) / 2)}")
+                        viewPager.setCurrentItem((etPageNumber.text.toString().toInt()) / 2, false)
+                    }
+                }
+            }
             dialog.dismiss()
         }
 
@@ -511,6 +545,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updatePageIndicator(currentPage: Int, totalPages: Int) {
         if (SharedPreferencesManager.isOnePageMode(this)) {
+            Log.d("PageNumber", "ItemCount: ${pdfAdapter?.itemCount}")
             if (SharedPreferencesManager.isLeftToRightMode(this)) {
                 tvPageIndicator.text = "${currentPage + 1} / ${totalPages}"
             } else {
@@ -518,24 +553,24 @@ class MainActivity : AppCompatActivity() {
             }
         } else {
             if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+                Log.d("PageNumber", "ItemCount: ${pdfAdapter?.itemCount}")
                 if (currentPage == 0) {
                     if (SharedPreferencesManager.isLeftToRightMode(this)) {
-                        tvPageIndicator.text =
-                            "1 / ${totalPages * 2}"
+                        tvPageIndicator.text = "1 / ${totalPages * 2}"
                     } else {
-                        tvPageIndicator.text =
-                            "${totalPages * 2} / 1"
+                        tvPageIndicator.text = "${totalPages * 2} / 1"
                     }
                 } else {
                     if (SharedPreferencesManager.isLeftToRightMode(this)) {
                         tvPageIndicator.text =
-                            "${currentPage * 2} - ${(currentPage * 2) + 1} / ${totalPages * 2}"
+                            "${currentPage * 2} - ${(currentPage * 2) + 1} / ${(totalPages * 2) - 2}"
                     } else {
                         tvPageIndicator.text =
-                            "${totalPages * 2} / ${(currentPage * 2) + 1} - ${currentPage * 2}"
+                            "${(totalPages * 2) - 2} / ${(currentPage * 2) + 1} - ${currentPage * 2}"
                     }
                 }
             } else {
+                Log.d("PageNumber", "ItemCount: ${pdfAdapter?.itemCount}")
                 if (SharedPreferencesManager.isLeftToRightMode(this)) {
                     tvPageIndicator.text =
                         "${(currentPage * 2) + 1} - ${(currentPage * 2) + 2} / ${totalPages * 2}"
