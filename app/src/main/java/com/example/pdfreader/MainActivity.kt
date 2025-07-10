@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.pdf.PdfRenderer
@@ -12,9 +13,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
-import android.view.Surface
 import android.view.View
-import android.view.WindowManager
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.setPadding
 import androidx.viewpager2.widget.ViewPager2
 
 class MainActivity : AppCompatActivity() {
@@ -40,7 +41,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvPageIndicator: TextView
     private lateinit var seekBar: SeekBar
     private lateinit var viewPager: ViewPager2
-//    private var currentOrientation = Surface.ROTATION_0
 
     private val PICK_PDF_FILE = 2
     private var pdfRenderer: PdfRenderer? = null
@@ -73,35 +73,6 @@ class MainActivity : AppCompatActivity() {
             loadFile(pdfUri)
         }
 
-//        val rootView = findViewById<View>(android.R.id.content)
-//        var lastRotation = getScreenRotation()
-
-//        rootView.viewTreeObserver.addOnGlobalLayoutListener {
-//            val newRotation = getScreenRotation()
-//            if (newRotation != lastRotation) {
-//                lastRotation = newRotation
-//                currentOrientation = newRotation
-//                onRotationChanged(newRotation)
-//            }
-//        }
-    }
-
-    private fun getScreenRotation(): Int {
-        val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        return wm.defaultDisplay.rotation
-    }
-
-    private fun onRotationChanged(rotation: Int) {
-        val rotationStr = when (rotation) {
-            Surface.ROTATION_0 -> "Portrait (0°)"
-            Surface.ROTATION_90 -> "Landscape (90°)"
-            Surface.ROTATION_180 -> "Portrait Upside Down (180°)"
-            Surface.ROTATION_270 -> "Landscape (270°)"
-            else -> "Unknown"
-        }
-        Log.d("Orientation", "Rotation changed: $rotationStr")
-
-        setupPdfViewer()
     }
 
     private fun initViews() {
@@ -185,30 +156,22 @@ class MainActivity : AppCompatActivity() {
             btnLTR.isChecked = true
             btnRTL.isChecked = false
             SharedPreferencesManager.setLeftToRightMode(this, true)
+            setupPdfViewer()
         }
 
         btnRTL.setOnClickListener {
             btnLTR.isChecked = false
             btnRTL.isChecked = true
             SharedPreferencesManager.setLeftToRightMode(this, false)
+            setupPdfViewer()
         }
 
         btnOnePage.setOnClickListener {
             btnOnePage.isChecked = true
             btnTwoPage.isChecked = false
             SharedPreferencesManager.setOnePageMode(this, true)
-//            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
-//                Log.d("PageNumber", "One: True : current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) - 1}")
-//                SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) - 1)
-//            } else {
-//                if (viewPager.currentItem % 2 == 0) {
-//                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) + 1}")
-//                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) + 1)
-//                } else {
-//                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem * 2}")
-//                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem * 2)
-//                }
-//            }
+            rememberPageNumber()
+            setupPdfViewer()
             switchView.visibility = View.GONE
             switchLayout.visibility = View.GONE
         }
@@ -217,18 +180,8 @@ class MainActivity : AppCompatActivity() {
             btnOnePage.isChecked = false
             btnTwoPage.isChecked = true
             SharedPreferencesManager.setOnePageMode(this, false)
-//            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
-//                if (viewPager.currentItem % 2 == 0) {
-//                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem / 2}")
-//                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
-//                } else {
-//                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem / 2) + 1}")
-//                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem / 2) + 1)
-//                }
-//            } else {
-//                Log.d("PageNumber", "Two: False: current: ${viewPager.currentItem}  saved as: ${viewPager.currentItem / 2}")
-//                SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
-//            }
+            rememberPageNumber()
+            setupPdfViewer()
             switchView.visibility = View.VISIBLE
             switchLayout.visibility = View.VISIBLE
         }
@@ -239,18 +192,22 @@ class MainActivity : AppCompatActivity() {
             } else {
                 SharedPreferencesManager.setCoverPageSeparate(this, false)
             }
+            rememberPageNumber()
+            setupPdfViewer()
         }
 
         btnVertical.setOnClickListener {
             btnVertical.isChecked = true
             btnHorizontal.isChecked = false
             SharedPreferencesManager.setVerticalScrollMode(this, true)
+            setupPdfViewer()
         }
 
         btnHorizontal.setOnClickListener {
             btnVertical.isChecked = false
             btnHorizontal.isChecked = true
             SharedPreferencesManager.setVerticalScrollMode(this, false)
+            setupPdfViewer()
         }
 
         btnLow.setOnClickListener {
@@ -258,6 +215,7 @@ class MainActivity : AppCompatActivity() {
             btnMedium.isChecked = false
             btnHigh.isChecked = false
             SharedPreferencesManager.setResolution(this, "LOW")
+            setupPdfViewer()
         }
 
         btnMedium.setOnClickListener {
@@ -265,6 +223,7 @@ class MainActivity : AppCompatActivity() {
             btnMedium.isChecked = true
             btnHigh.isChecked = false
             SharedPreferencesManager.setResolution(this, "MEDIUM")
+            setupPdfViewer()
         }
 
         btnHigh.setOnClickListener {
@@ -272,45 +231,44 @@ class MainActivity : AppCompatActivity() {
             btnMedium.isChecked = false
             btnHigh.isChecked = true
             SharedPreferencesManager.setResolution(this, "HIGH")
+            setupPdfViewer()
         }
 
         btnClose.setOnClickListener {
             dialog.dismiss()
         }
 
-        dialog.setOnDismissListener {
-            if (SharedPreferencesManager.isOnePageMode(this)) {
-                if (SharedPreferencesManager.isCoverPageSeparate(this)) {
-                    Log.d("PageNumber", "One: True : current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) - 1}")
-                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) - 1)
-                } else {
-                    if (viewPager.currentItem % 2 == 0) {
-                        Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) + 1}")
-                        SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) + 1)
-                    } else {
-                        Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem * 2}")
-                        SharedPreferencesManager.savePageNumber(this, viewPager.currentItem * 2)
-                    }
-                }
+        dialog.show()
+    }
+
+    private fun rememberPageNumber() {
+        if (SharedPreferencesManager.isOnePageMode(this)) {
+            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+                Log.d("PageNumber", "One: True : current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) - 1}")
+                SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) - 1)
             } else {
-                if (SharedPreferencesManager.isCoverPageSeparate(this)) {
-                    if (viewPager.currentItem % 2 == 0) {
-                        Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem / 2}")
-                        SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
-                    } else {
-                        Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem / 2) + 1}")
-                        SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem / 2) + 1)
-                    }
+                if (viewPager.currentItem % 2 == 0) {
+                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) + 1}")
+                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) + 1)
                 } else {
-                    Log.d("PageNumber", "Two: False: current: ${viewPager.currentItem}  saved as: ${viewPager.currentItem / 2}")
-                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
+                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem * 2}")
+                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem * 2)
                 }
             }
-
-            setupPdfViewer()
+        } else {
+            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+                if (viewPager.currentItem % 2 == 0) {
+                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem / 2}")
+                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
+                } else {
+                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem / 2) + 1}")
+                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem / 2) + 1)
+                }
+            } else {
+                Log.d("PageNumber", "Two: False: current: ${viewPager.currentItem}  saved as: ${viewPager.currentItem / 2}")
+                SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
+            }
         }
-
-        dialog.show()
     }
 
     private fun openFilePicker() {
@@ -380,6 +338,23 @@ class MainActivity : AppCompatActivity() {
             View.LAYOUT_DIRECTION_RTL
         }
 
+        if (SharedPreferencesManager.isOnePageMode(this)) {
+            val layoutParams = viewPager.layoutParams as ViewGroup.MarginLayoutParams
+            // Set new width and height
+            layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+            layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+            viewPager.layoutParams = layoutParams
+            viewPager.rotation = 0f
+        } else {
+            val layoutParams = viewPager.layoutParams as ViewGroup.MarginLayoutParams
+            // Set new width and height
+            val displayMetrics = Resources.getSystem().displayMetrics
+            layoutParams.width = displayMetrics.heightPixels - 10.dpToPx(this)
+            layoutParams.height = displayMetrics.widthPixels - 10.dpToPx(this)
+            viewPager.layoutParams = layoutParams
+            viewPager.rotation = 90f
+        }
+
         seekBar.layoutDirection = viewPager.layoutDirection
 
         // Create adapter
@@ -388,7 +363,7 @@ class MainActivity : AppCompatActivity() {
             isOnePageMode,
             isCoverPageSeparate
         ) {
-            Log.d("MainActivity", "Long press detected - toggling bars")
+            Log.d("MainActivity", "Long Press detected - toggling bars")
             runOnUiThread {
                 toggleBarsVisibility()
             }
@@ -429,8 +404,44 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    fun Int.dpToPx(context: Context): Int = (this * context.resources.displayMetrics.density).toInt()
+
     private fun updatePageIndicator(currentPage: Int, totalPages: Int) {
-        tvPageIndicator.text = "${currentPage} / ${totalPages - 1}"
+        if (SharedPreferencesManager.isOnePageMode(this)) {
+            if (SharedPreferencesManager.isLeftToRightMode(this)) {
+                tvPageIndicator.text = "${currentPage} / ${totalPages - 1}"
+            } else {
+                tvPageIndicator.text = "${totalPages - 1} / ${currentPage}"
+            }
+        } else {
+            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
+                if (currentPage == 0) {
+                    if (SharedPreferencesManager.isLeftToRightMode(this)) {
+                        tvPageIndicator.text =
+                            "0 / ${(totalPages - 1) * 2}"
+                    } else {
+                        tvPageIndicator.text =
+                            "${(totalPages - 1) * 2} / 0"
+                    }
+                } else {
+                    if (SharedPreferencesManager.isLeftToRightMode(this)) {
+                        tvPageIndicator.text =
+                            "${(currentPage * 2) - 1} - ${currentPage * 2} / ${(totalPages - 1) * 2}"
+                    } else {
+                        tvPageIndicator.text =
+                            "${(totalPages - 1) * 2} / ${currentPage * 2} - ${(currentPage * 2) - 1}"
+                    }
+                }
+            } else {
+                if (SharedPreferencesManager.isLeftToRightMode(this)) {
+                    tvPageIndicator.text =
+                        "${currentPage * 2} - ${(currentPage * 2) + 1} / ${(totalPages - 1) * 2}"
+                } else {
+                    tvPageIndicator.text =
+                        "${(totalPages - 1) * 2} / ${(currentPage * 2) + 1} - ${currentPage * 2}"
+                }
+            }
+        }
     }
 
     private fun toggleBarsVisibility() {

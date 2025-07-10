@@ -26,7 +26,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
-        android:text="Select Page Direction"
+        android:text="Page Direction"
         style="@style/AppBaseText"/>
 
     <LinearLayout
@@ -61,7 +61,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
-        android:text="Select Page View"
+        android:text="Page View"
         style="@style/AppBaseText"/>
 
     <LinearLayout
@@ -106,7 +106,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Select cover page seperately"
+            android:text="Show cover page seperately"
             style="@style/AppBaseText"/>
 
         <androidx.appcompat.widget.SwitchCompat
@@ -125,7 +125,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
-        android:text="Select Scroll direction"
+        android:text="Scroll direction"
         style="@style/AppBaseText"/>
 
     <LinearLayout
@@ -160,7 +160,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
-        android:text="Select Resolution"
+        android:text="Resolution"
         style="@style/AppBaseText"/>
 
     <LinearLayout

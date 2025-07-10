@@ -2,13 +2,10 @@ package com.example.pdfreader
 
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
-import android.os.ParcelFileDescriptor
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import java.io.IOException
 
 class PdfPageAdapter(
     private val pdfRenderer: PdfRenderer,
@@ -60,7 +57,6 @@ class PdfPageAdapter(
 
         init {
             zoomableImageView.setOnLongPressToggleListener {
-                Log.d("PdfPageAdapter", "Long press detected")
                 onLongPress()
             }
 
@@ -80,18 +76,10 @@ class PdfPageAdapter(
         fun bindDualPage(pdfRenderer: PdfRenderer, position: Int, isCoverPageSeparate: Boolean) {
             if (isCoverPageSeparate && position == 0) {
                 // First page alone
-//                val page = pdfRenderer.openPage(0)
-//                val bitmap = createBitmapFromPage(page)
-                var leftPageIndex = pdfRenderer.pageCount + 1
-                var rightPageIndex = 0
-                if (!SharedPreferencesManager.isLeftToRightMode(zoomableImageView.context)) {
-                    leftPageIndex = 0
-                    rightPageIndex = pdfRenderer.pageCount + 1
-                }
-
-                val bitmap = createDualPageBitmap(pdfRenderer, leftPageIndex, rightPageIndex)
+                val page = pdfRenderer.openPage(0)
+                val bitmap = createBitmapFromPage(page)
                 zoomableImageView.setImageBitmap(bitmap)
-//                page.close()
+                page.close()
             } else {
                 // Calculate page indices for dual view
                 val startPageIndex = if (isCoverPageSeparate) {
@@ -117,12 +105,10 @@ class PdfPageAdapter(
         }
 
         private fun createBitmapFromPage(page: PdfRenderer.Page): Bitmap {
-            val resolution = if (SharedPreferencesManager.getResolution(zoomableImageView.context) == "LOW") {
-                resLow
-            } else if (SharedPreferencesManager.getResolution(zoomableImageView.context) == "MEDIUM") {
-                resMedium
-            } else {
-                resHigh
+            val resolution = when (SharedPreferencesManager.getResolution(zoomableImageView.context)) {
+                "LOW" -> resLow
+                "MEDIUM" -> resMedium
+                else -> resHigh
             }
 
             val bitmap = Bitmap.createBitmap(
@@ -140,12 +126,10 @@ class PdfPageAdapter(
             rightPageIndex: Int
         ): Bitmap {
 
-            val resolution = if (SharedPreferencesManager.getResolution(zoomableImageView.context) == "LOW") {
-                resLow
-            } else if (SharedPreferencesManager.getResolution(zoomableImageView.context) == "MEDIUM") {
-                resMedium
-            } else {
-                resHigh
+            val resolution = when (SharedPreferencesManager.getResolution(zoomableImageView.context)) {
+                "LOW" -> resLow
+                "MEDIUM" -> resMedium
+                else -> resHigh
             }
 
             val leftPage = if (leftPageIndex < pdfRenderer.pageCount) {

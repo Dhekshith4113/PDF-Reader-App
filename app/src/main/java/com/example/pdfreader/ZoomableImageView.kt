@@ -3,15 +3,11 @@ package com.example.pdfreader
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Matrix
-import android.graphics.PointF
-import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
-import android.view.View
 import androidx.appcompat.widget.AppCompatImageView
-import kotlin.math.max
 import kotlin.math.min
 
 class ZoomableImageView @JvmOverloads constructor(
@@ -40,7 +36,7 @@ class ZoomableImageView @JvmOverloads constructor(
     private var bottom = 0f
     private var originalBitmapWidth = 0f
     private var originalBitmapHeight = 0f
-    private var isLongPressed = false
+    private var isLongPressToggle = false
 
     private val matrix = Matrix()
     private val matrixValues = FloatArray(9)
@@ -146,8 +142,8 @@ class ZoomableImageView @JvmOverloads constructor(
 
         override fun onLongPress(e: MotionEvent) {
             super.onLongPress(e)
-            isLongPressed = !isLongPressed
-            onLongPressToggle?.invoke(isLongPressed) // Return the toggled value
+            isLongPressToggle = !isLongPressToggle
+            onLongPressToggle?.invoke(isLongPressToggle) // Return the toggled value
         }
     }
 
