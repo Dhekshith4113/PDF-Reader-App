@@ -12,6 +12,7 @@ object SharedPreferencesManager {
     private const val KEY_URI = "uri"
     private const val KEY_PAGE_NUMBER = "page_number"
     private const val KEY_RESOLUTION = "resolution"
+    private const val KEY_LANDSCAPE_ORIENTATION = "landscape_orientation"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -72,5 +73,14 @@ object SharedPreferencesManager {
     fun setResolution(context: Context, resolution: String) {
         getPrefs(context).edit().putString(KEY_RESOLUTION, resolution).apply()
     }
+
+    fun isLandscapeOrientation(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_LANDSCAPE_ORIENTATION, false)
+    }
+
+    fun setLandscapeOrientation(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_LANDSCAPE_ORIENTATION, enabled).apply()
+    }
+
 
 }

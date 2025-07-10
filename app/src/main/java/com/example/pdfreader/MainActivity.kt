@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.Color
@@ -12,10 +13,13 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.RadioButton
@@ -25,6 +29,7 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.setPadding
@@ -36,9 +41,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bottomBar: LinearLayout
     private lateinit var btnBack: ImageButton
     private lateinit var btnMenu: ImageButton
+    private lateinit var btnOrientation: ImageButton
     private lateinit var tvTitle: TextView
     private lateinit var tvOpenFile: TextView
     private lateinit var tvPageIndicator: TextView
+    private lateinit var tvPageCount: TextView
     private lateinit var seekBar: SeekBar
     private lateinit var viewPager: ViewPager2
 
@@ -80,11 +87,25 @@ class MainActivity : AppCompatActivity() {
         bottomBar = findViewById(R.id.bottomBar)
         btnBack = findViewById(R.id.btnBack)
         btnMenu = findViewById(R.id.btnMenu)
+        btnOrientation = findViewById(R.id.btnOrientation)
         tvTitle = findViewById(R.id.tvTitle)
         tvOpenFile = findViewById(R.id.tvOpenFile)
+        tvPageCount = findViewById(R.id.tvPageCount)
         tvPageIndicator = findViewById(R.id.tvPageIndicator)
         seekBar = findViewById(R.id.seekBar)
         viewPager = findViewById(R.id.viewPager)
+
+        if (SharedPreferencesManager.isLandscapeOrientation(this)) {
+            btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
+        } else {
+            btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
+        }
+
+        if (SharedPreferencesManager.isOnePageMode(this)) {
+            tvPageCount.text = "1"
+        } else {
+            tvPageCount.text = "2"
+        }
 
         btnBack.setOnClickListener {
             finish()
@@ -94,9 +115,37 @@ class MainActivity : AppCompatActivity() {
             showMenuDialog()
         }
 
+        btnOrientation.setOnClickListener {
+            if (SharedPreferencesManager.isLandscapeOrientation(this)) {
+                SharedPreferencesManager.setLandscapeOrientation(this, false)
+                btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
+            } else {
+                SharedPreferencesManager.setLandscapeOrientation(this, true)
+                btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
+            }
+            setupPdfViewer()
+        }
+
         tvOpenFile.setOnClickListener {
             openFilePicker()
         }
+
+        tvPageCount.setOnClickListener {
+            if (SharedPreferencesManager.isOnePageMode(this)) {
+                SharedPreferencesManager.setOnePageMode(this, false)
+                tvPageCount.text = "2"
+            } else {
+                SharedPreferencesManager.setOnePageMode(this, true)
+                tvPageCount.text = "1"
+            }
+            rememberPageNumber()
+            setupPdfViewer()
+        }
+
+        tvPageIndicator.setOnClickListener {
+            showJumpDialog()
+        }
+
     }
 
     private fun showMenuDialog() {
@@ -170,6 +219,7 @@ class MainActivity : AppCompatActivity() {
             btnOnePage.isChecked = true
             btnTwoPage.isChecked = false
             SharedPreferencesManager.setOnePageMode(this, true)
+            tvPageCount.text = "1"
             rememberPageNumber()
             setupPdfViewer()
             switchView.visibility = View.GONE
@@ -180,6 +230,7 @@ class MainActivity : AppCompatActivity() {
             btnOnePage.isChecked = false
             btnTwoPage.isChecked = true
             SharedPreferencesManager.setOnePageMode(this, false)
+            tvPageCount.text = "2"
             rememberPageNumber()
             setupPdfViewer()
             switchView.visibility = View.VISIBLE
@@ -192,7 +243,8 @@ class MainActivity : AppCompatActivity() {
             } else {
                 SharedPreferencesManager.setCoverPageSeparate(this, false)
             }
-            rememberPageNumber()
+            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
             setupPdfViewer()
         }
 
@@ -235,6 +287,57 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnClose.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun showJumpDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_jump_to_page, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val tvEnterPageNumber = dialogView.findViewById<TextView>(R.id.tvEnterPageNumber)
+        val etPageNumber = dialogView.findViewById<EditText>(R.id.etPageNumber)
+        val btnJump = dialogView.findViewById<Button>(R.id.btnJump)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
+
+        btnJump.isEnabled = false
+        btnJump.setTextColor(ContextCompat.getColor(this, R.color.text_color))
+        btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.divider_grey))
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        tvEnterPageNumber.text = "Enter page number (1 - ${pdfAdapter?.itemCount ?: 0})"
+
+        etPageNumber.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (!s.isNullOrEmpty() && s.toString().toInt() > 0 && s.toString().toInt() <= (pdfAdapter?.itemCount ?: 0)) {
+                    btnJump.isEnabled = true
+                    btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.background_color))
+                    btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.text_color))
+                } else {
+                    btnJump.isEnabled = false
+                    btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_color))
+                    btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.divider_grey))
+                }
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        btnJump.setOnClickListener {
+            Log.d("PageNumber", "Jump to: ${(etPageNumber.text.toString().toInt()) - 1}")
+            viewPager.setCurrentItem((etPageNumber.text.toString().toInt()) - 1, false)
+            dialog.dismiss()
+        }
+
+        btnCancel.setOnClickListener {
             dialog.dismiss()
         }
 
@@ -338,7 +441,7 @@ class MainActivity : AppCompatActivity() {
             View.LAYOUT_DIRECTION_RTL
         }
 
-        if (SharedPreferencesManager.isOnePageMode(this)) {
+        if (!SharedPreferencesManager.isLandscapeOrientation(this)) {
             val layoutParams = viewPager.layoutParams as ViewGroup.MarginLayoutParams
             // Set new width and height
             layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
@@ -404,41 +507,41 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    fun Int.dpToPx(context: Context): Int = (this * context.resources.displayMetrics.density).toInt()
+    private fun Int.dpToPx(context: Context): Int = (this * context.resources.displayMetrics.density).toInt()
 
     private fun updatePageIndicator(currentPage: Int, totalPages: Int) {
         if (SharedPreferencesManager.isOnePageMode(this)) {
             if (SharedPreferencesManager.isLeftToRightMode(this)) {
-                tvPageIndicator.text = "${currentPage} / ${totalPages - 1}"
+                tvPageIndicator.text = "${currentPage + 1} / ${totalPages}"
             } else {
-                tvPageIndicator.text = "${totalPages - 1} / ${currentPage}"
+                tvPageIndicator.text = "${totalPages} / ${currentPage + 1}"
             }
         } else {
             if (SharedPreferencesManager.isCoverPageSeparate(this)) {
                 if (currentPage == 0) {
                     if (SharedPreferencesManager.isLeftToRightMode(this)) {
                         tvPageIndicator.text =
-                            "0 / ${(totalPages - 1) * 2}"
+                            "1 / ${totalPages * 2}"
                     } else {
                         tvPageIndicator.text =
-                            "${(totalPages - 1) * 2} / 0"
+                            "${totalPages * 2} / 1"
                     }
                 } else {
                     if (SharedPreferencesManager.isLeftToRightMode(this)) {
                         tvPageIndicator.text =
-                            "${(currentPage * 2) - 1} - ${currentPage * 2} / ${(totalPages - 1) * 2}"
+                            "${currentPage * 2} - ${(currentPage * 2) + 1} / ${totalPages * 2}"
                     } else {
                         tvPageIndicator.text =
-                            "${(totalPages - 1) * 2} / ${currentPage * 2} - ${(currentPage * 2) - 1}"
+                            "${totalPages * 2} / ${(currentPage * 2) + 1} - ${currentPage * 2}"
                     }
                 }
             } else {
                 if (SharedPreferencesManager.isLeftToRightMode(this)) {
                     tvPageIndicator.text =
-                        "${currentPage * 2} - ${(currentPage * 2) + 1} / ${(totalPages - 1) * 2}"
+                        "${(currentPage * 2) + 1} - ${(currentPage * 2) + 2} / ${totalPages * 2}"
                 } else {
                     tvPageIndicator.text =
-                        "${(totalPages - 1) * 2} / ${(currentPage * 2) + 1} - ${currentPage * 2}"
+                        "${totalPages * 2} / ${(currentPage * 2) + 2} - ${(currentPage * 2) + 1}"
                 }
             }
         }
