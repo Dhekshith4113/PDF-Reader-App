@@ -1,11 +1,20 @@
 package com.example.pdfreader
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
+import android.graphics.PorterDuff
 import android.graphics.pdf.PdfRenderer
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import jp.co.cyberagent.android.gpuimage.GPUImage
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageSharpenFilter
 
 class PdfPageAdapter(
     private val pdfRenderer: PdfRenderer,
@@ -48,8 +57,8 @@ class PdfPageAdapter(
     ) : RecyclerView.ViewHolder(itemView) {
 
         private val zoomableImageView: ZoomableImageView = itemView.findViewById(R.id.zoomableImageView)
-        private val resLow: Int = 1
-        private val resMedium: Int = 2
+        private val resLow: Int = 2
+        private val resMedium: Int = 3
         private val resHigh: Int = 4
 
         // Expose the ZoomableImageView for external access (e.g., reset zoom)
@@ -105,7 +114,8 @@ class PdfPageAdapter(
         }
 
         private fun createBitmapFromPage(page: PdfRenderer.Page): Bitmap {
-            val resolution = when (SharedPreferencesManager.getResolution(zoomableImageView.context)) {
+            val context = zoomableImageView.context
+            val resolution = when (SharedPreferencesManager.getResolution(context)) {
                 "LOW" -> resLow
                 "MEDIUM" -> resMedium
                 else -> resHigh
@@ -116,16 +126,97 @@ class PdfPageAdapter(
                 page.height * resolution,
                 Bitmap.Config.ARGB_8888
             )
+
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-            return bitmap
+
+            var processedBitmap = bitmap
+//            processedBitmap = applyGpuSharpenFilter(bitmap, context)
+
+            if (SharedPreferencesManager.isGrayscaleEnabled(context)) {
+                processedBitmap = applyGrayscaleFilter(processedBitmap)
+            }
+
+            if (SharedPreferencesManager.isInvertEnabled(context)) {
+                processedBitmap = applyInvertFilter(processedBitmap)
+            }
+
+            if (SharedPreferencesManager.isSepiaEnabled(context)) {
+                processedBitmap = applySepiaFilter(processedBitmap)
+            }
+
+            return processedBitmap
+        }
+
+        private fun applyGpuSharpenFilter(bitmap: Bitmap, context: Context): Bitmap {
+            val gpuImage = GPUImage(context)
+            gpuImage.setImage(bitmap) // load image
+            gpuImage.setFilter(GPUImageSharpenFilter(1.0f)) // 0.0f (no sharpen) to ~4.0f (strong sharpen)
+            return gpuImage.bitmapWithFilterApplied
+        }
+
+
+        private fun applyGrayscaleFilter(src: Bitmap): Bitmap {
+            val bmpGrayscale = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bmpGrayscale)
+            val paint = Paint()
+
+            val colorMatrix = ColorMatrix()
+            colorMatrix.setSaturation(0f) // Set to grayscale
+
+            paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
+            canvas.drawBitmap(src, 0f, 0f, paint)
+
+            return bmpGrayscale
+        }
+
+        private fun applyInvertFilter(src: Bitmap): Bitmap {
+            val bmpInverted = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bmpInverted)
+            val paint = Paint()
+
+            val invertMatrix = ColorMatrix(
+                floatArrayOf(
+                    -1f,  0f,  0f,  0f, 255f,
+                    0f, -1f,  0f,  0f, 255f,
+                    0f,  0f, -1f,  0f, 255f,
+                    0f,  0f,  0f,  1f,   0f
+                )
+            )
+
+            paint.colorFilter = ColorMatrixColorFilter(invertMatrix)
+            canvas.drawBitmap(src, 0f, 0f, paint)
+
+            return bmpInverted
+        }
+
+        private fun applySepiaFilter(src: Bitmap): Bitmap {
+            val sepia = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+
+            val canvas = Canvas(sepia)
+            val paint = Paint()
+
+            val sepiaMatrix = ColorMatrix().apply {
+                set(
+                    floatArrayOf(
+                        0.393f, 0.769f, 0.189f, 0f, 0f,
+                        0.349f, 0.686f, 0.168f, 0f, 0f,
+                        0.272f, 0.534f, 0.131f, 0f, 0f,
+                        0f,     0f,     0f,     1f, 0f
+                    )
+                )
+            }
+
+            paint.colorFilter = ColorMatrixColorFilter(sepiaMatrix)
+            canvas.drawBitmap(src, 0f, 0f, paint)
+
+            return sepia
         }
 
         private fun createDualPageBitmap(
             pdfRenderer: PdfRenderer,
             leftPageIndex: Int,
             rightPageIndex: Int
-        ): Bitmap {
-
+        ): Bitmap? {
             val resolution = when (SharedPreferencesManager.getResolution(zoomableImageView.context)) {
                 "LOW" -> resLow
                 "MEDIUM" -> resMedium
@@ -140,28 +231,40 @@ class PdfPageAdapter(
                 pdfRenderer.openPage(rightPageIndex)
             } else null
 
-            val pageWidth = leftPage?.width ?: rightPage?.width ?: 0
-//            val totalWidth = (leftPage?.width ?: 0) + (rightPage?.width ?: 0)
-            val pageHeight = leftPage?.height ?: rightPage?.height ?: 0
+            // Return null if both pages are missing (nothing to draw)
+            if (leftPage == null && rightPage == null) return null
+
+            val leftWidth = leftPage?.width ?: 0
+            val rightWidth = rightPage?.width ?: 0
+            val leftHeight = leftPage?.height ?: 0
+            val rightHeight = rightPage?.height ?: 0
+
+            val totalWidth = (leftWidth + rightWidth) * resolution
+            val maxHeight = maxOf(leftHeight, rightHeight) * resolution
 
             val combinedBitmap = Bitmap.createBitmap(
-                pageWidth * 2 * resolution,
-                pageHeight * resolution,
+                totalWidth,
+                maxHeight,
                 Bitmap.Config.ARGB_8888
             )
 
-            val canvas = android.graphics.Canvas(combinedBitmap)
-            canvas.drawColor(android.graphics.Color.WHITE)
+            val canvas = Canvas(combinedBitmap)
+
+            // Optional: set transparent background instead of white
+            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+
+            var currentX = 0f
 
             leftPage?.let { page ->
                 val leftBitmap = createBitmapFromPage(page)
-                canvas.drawBitmap(leftBitmap, 0f, 0f, null)
+                canvas.drawBitmap(leftBitmap, currentX, 0f, null)
+                currentX += leftBitmap.width.toFloat()
                 page.close()
             }
 
             rightPage?.let { page ->
                 val rightBitmap = createBitmapFromPage(page)
-                canvas.drawBitmap(rightBitmap, (pageWidth * resolution).toFloat(), 0f, null)
+                canvas.drawBitmap(rightBitmap, currentX, 0f, null)
                 page.close()
             }
 

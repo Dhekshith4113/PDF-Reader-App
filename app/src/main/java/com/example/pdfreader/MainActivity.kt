@@ -13,8 +13,6 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
-import android.text.Editable
-import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
@@ -32,9 +30,9 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.indices
-import androidx.core.view.setPadding
 import androidx.viewpager2.widget.ViewPager2
+import androidx.core.widget.addTextChangedListener
+import java.security.MessageDigest
 
 class MainActivity : AppCompatActivity() {
 
@@ -55,6 +53,7 @@ class MainActivity : AppCompatActivity() {
     private var pdfAdapter: PdfPageAdapter? = null
     private var currentPageIndex = 0
     private var barsVisible = true
+    private var totalPages: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -73,11 +72,33 @@ class MainActivity : AppCompatActivity() {
             val pdfUri = intent.data!!
             try {
                 contentResolver.takePersistableUriPermission(pdfUri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION)
             } catch (e: Exception) {
                 Toast.makeText(this, "Error loading PDF: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+
+            val uriHash = computeUriHash(this, pdfUri)
+            if (uriHash != SharedPreferencesManager.loadUri(this)) {
+                SharedPreferencesManager.setOnePageMode(this, true)
+                SharedPreferencesManager.savePageNumber(this, 0)
+                SharedPreferencesManager.setInvertEnabled(this, false)
+                SharedPreferencesManager.setGrayscaleEnabled(this, false)
+                SharedPreferencesManager.setSepiaEnabled(this, false)
+                SharedPreferencesManager.setLandscapeOrientation(this, false)
+            }
+
+            if (SharedPreferencesManager.isLandscapeOrientation(this)) {
+                btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
+            } else {
+                btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
+            }
+
+            if (SharedPreferencesManager.isOnePageMode(this)) {
+                tvPageCount.text = "1"
+            } else {
+                tvPageCount.text = "2"
+            }
+
             loadFile(pdfUri)
         }
 
@@ -171,6 +192,9 @@ class MainActivity : AppCompatActivity() {
         val btnLow = dialogView.findViewById<RadioButton>(R.id.btnLow)
         val btnMedium = dialogView.findViewById<RadioButton>(R.id.btnMedium)
         val btnHigh = dialogView.findViewById<RadioButton>(R.id.btnHigh)
+        val switchInvert = dialogView.findViewById<SwitchCompat>(R.id.switchInvert)
+        val switchGrayscale = dialogView.findViewById<SwitchCompat>(R.id.switchGrayscale)
+        val switchSepia = dialogView.findViewById<SwitchCompat>(R.id.switchSepia)
         val btnClose = dialogView.findViewById<Button>(R.id.btnClose)
 
         btnLTR.isChecked = SharedPreferencesManager.isLeftToRightMode(this)
@@ -182,6 +206,9 @@ class MainActivity : AppCompatActivity() {
         switchToggle.isChecked = SharedPreferencesManager.isCoverPageSeparate(this)
         btnVertical.isChecked = SharedPreferencesManager.isVerticalScrollMode(this)
         btnHorizontal.isChecked = !SharedPreferencesManager.isVerticalScrollMode(this)
+        switchInvert.isChecked = SharedPreferencesManager.isInvertEnabled(this)
+        switchGrayscale.isChecked = SharedPreferencesManager.isGrayscaleEnabled(this)
+        switchSepia.isChecked = SharedPreferencesManager.isSepiaEnabled(this)
 
         if (SharedPreferencesManager.getResolution(this) == "LOW") {
             btnLow.isChecked = true
@@ -208,6 +235,8 @@ class MainActivity : AppCompatActivity() {
             btnLTR.isChecked = true
             btnRTL.isChecked = false
             SharedPreferencesManager.setLeftToRightMode(this, true)
+            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
             setupPdfViewer()
         }
 
@@ -215,6 +244,8 @@ class MainActivity : AppCompatActivity() {
             btnLTR.isChecked = false
             btnRTL.isChecked = true
             SharedPreferencesManager.setLeftToRightMode(this, false)
+            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
             setupPdfViewer()
         }
 
@@ -269,6 +300,8 @@ class MainActivity : AppCompatActivity() {
             btnLow.isChecked = true
             btnMedium.isChecked = false
             btnHigh.isChecked = false
+            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
             SharedPreferencesManager.setResolution(this, "LOW")
             setupPdfViewer()
         }
@@ -277,6 +310,8 @@ class MainActivity : AppCompatActivity() {
             btnLow.isChecked = false
             btnMedium.isChecked = true
             btnHigh.isChecked = false
+            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
             SharedPreferencesManager.setResolution(this, "MEDIUM")
             setupPdfViewer()
         }
@@ -285,7 +320,30 @@ class MainActivity : AppCompatActivity() {
             btnLow.isChecked = false
             btnMedium.isChecked = false
             btnHigh.isChecked = true
+            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
             SharedPreferencesManager.setResolution(this, "HIGH")
+            setupPdfViewer()
+        }
+
+        switchInvert.setOnCheckedChangeListener { _, isChecked ->
+            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            SharedPreferencesManager.setInvertEnabled(this, isChecked)
+            setupPdfViewer()
+        }
+
+        switchGrayscale.setOnCheckedChangeListener { _, isChecked ->
+            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            SharedPreferencesManager.setGrayscaleEnabled(this, isChecked)
+            setupPdfViewer()
+        }
+
+        switchSepia.setOnCheckedChangeListener { _, isChecked ->
+            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            SharedPreferencesManager.setSepiaEnabled(this, isChecked)
             setupPdfViewer()
         }
 
@@ -308,103 +366,96 @@ class MainActivity : AppCompatActivity() {
         val btnJump = dialogView.findViewById<Button>(R.id.btnJump)
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
 
-        btnJump.isEnabled = false
-        btnJump.setTextColor(ContextCompat.getColor(this, R.color.text_color))
-        btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.divider_grey))
+        fun setButtonState(enabled: Boolean) {
+            btnJump.isEnabled = enabled
+            val textColor = if (enabled) R.color.background_color else R.color.text_color
+            val backgroundColor = if (enabled) R.color.text_color else R.color.divider_grey
+
+            btnJump.setTextColor(ContextCompat.getColor(this, textColor))
+            btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, backgroundColor))
+        }
 
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        tvEnterPageNumber.text = "Enter page number (1 - $totalPages)"
+        setButtonState(false)
 
-        if (SharedPreferencesManager.isOnePageMode(this)) {
-            tvEnterPageNumber.text = "Enter page number (1 - ${pdfAdapter?.itemCount ?: 0})"
-        } else {
-            tvEnterPageNumber.text = "Enter page number (1 - ${(pdfAdapter?.itemCount)?.times(2) ?: 0})"
+        etPageNumber.addTextChangedListener {
+            val input = it.toString().toIntOrNull()
+            setButtonState(input != null && input in 1..totalPages)
         }
-
-        etPageNumber.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                if (!s.isNullOrEmpty() && s.toString().toInt() > 0 && s.toString().toInt() <= (pdfAdapter?.itemCount ?: 0)) {
-                    if (SharedPreferencesManager.isOnePageMode(this@MainActivity)) {
-                        btnJump.isEnabled = true
-                        btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.background_color))
-                        btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.text_color))
-                    } else {
-                        if (SharedPreferencesManager.isCoverPageSeparate(this@MainActivity)) {
-                            btnJump.isEnabled = true
-                            btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.background_color))
-                            btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.text_color))
-                        } else {
-                            btnJump.isEnabled = true
-                            btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.background_color))
-                            btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.text_color))
-                        }
-                    }
-                } else {
-                    btnJump.isEnabled = false
-                    btnJump.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_color))
-                    btnJump.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.divider_grey))
-                }
-            }
-
-            override fun afterTextChanged(s: Editable?) {}
-        })
 
         btnJump.setOnClickListener {
-            if (SharedPreferencesManager.isOnePageMode(this)) {
-                Log.d("PageNumber", "Jump to: ${(etPageNumber.text.toString().toInt()) - 1}")
-                viewPager.setCurrentItem((etPageNumber.text.toString().toInt()) - 1, false)
-            } else {
-                if (SharedPreferencesManager.isCoverPageSeparate(this)) {
-                    Log.d("PageNumber", "Jump to: ${(etPageNumber.text.toString().toInt()) / 2}")
-                    viewPager.setCurrentItem((etPageNumber.text.toString().toInt()) / 2, false)
-                } else {
-                    if (etPageNumber.text.toString().toInt() % 2== 0) {
-                        Log.d("PageNumber", "Jump to: ${((etPageNumber.text.toString().toInt()) / 2) - 1}")
-                        viewPager.setCurrentItem(((etPageNumber.text.toString().toInt()) / 2) - 1, false)
-                    } else {
-                        Log.d("PageNumber", "Jump to: ${((etPageNumber.text.toString().toInt()) / 2)}")
-                        viewPager.setCurrentItem((etPageNumber.text.toString().toInt()) / 2, false)
-                    }
-                }
-            }
+            val page = etPageNumber.text.toString().toIntOrNull() ?: return@setOnClickListener
+            val itemIndex = calculateViewPagerIndexFromPage(page)
+            Log.d("PageNumber", "Jump to: $itemIndex")
+            viewPager.setCurrentItem(itemIndex, false)
             dialog.dismiss()
         }
 
-        btnCancel.setOnClickListener {
-            dialog.dismiss()
-        }
-
+        btnCancel.setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
+    private fun calculateViewPagerIndexFromPage(page: Int): Int {
+        return when {
+            SharedPreferencesManager.isOnePageMode(this) -> page - 1
+            SharedPreferencesManager.isCoverPageSeparate(this) -> page / 2
+            page % 2 == 0 -> (page / 2) - 1
+            else -> page / 2
+        }
+    }
+
     private fun rememberPageNumber() {
-        if (SharedPreferencesManager.isOnePageMode(this)) {
-            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
-                Log.d("PageNumber", "One: True : current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) - 1}")
-                SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) - 1)
-            } else {
-                if (viewPager.currentItem % 2 == 0) {
-                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem * 2) + 1}")
-                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem * 2) + 1)
-                } else {
-                    Log.d("PageNumber", "One: False: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem * 2}")
-                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem * 2)
+        val pageNumber = when {
+            SharedPreferencesManager.isOnePageMode(this) -> {
+                if (SharedPreferencesManager.isCoverPageSeparate(this)) (viewPager.currentItem * 2) - 1
+                else if (viewPager.currentItem % 2 == 0) (viewPager.currentItem * 2) + 1
+                else viewPager.currentItem * 2
+            }
+            SharedPreferencesManager.isCoverPageSeparate(this) -> {
+                if (viewPager.currentItem % 2 == 0) viewPager.currentItem / 2
+                else (viewPager.currentItem / 2) + 1
+            }
+            else -> viewPager.currentItem / 2
+        }
+        Log.d("PageNumber", "Saved: $pageNumber")
+        SharedPreferencesManager.savePageNumber(this, pageNumber)
+    }
+
+    private fun updatePageIndicator(currentPage: Int) {
+        val ltr = SharedPreferencesManager.isLeftToRightMode(this)
+        val pageText = when {
+            SharedPreferencesManager.isOnePageMode(this) ->
+                if (ltr) "${currentPage + 1} / $totalPages" else "$totalPages / ${currentPage + 1}"
+
+            SharedPreferencesManager.isCoverPageSeparate(this) -> {
+                if (currentPage == 0) if (ltr) "1 / $totalPages" else "$totalPages / 1"
+                else {
+                    val first = currentPage * 2
+                    val second = first + 1
+                    val text = if (first == totalPages) "$first" else "$first - $second"
+                    if (ltr) "$text / $totalPages" else "$totalPages / $text"
                 }
             }
-        } else {
-            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
-                if (viewPager.currentItem % 2 == 0) {
-                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${viewPager.currentItem / 2}")
-                    SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
-                } else {
-                    Log.d("PageNumber", "Two: True: current: ${viewPager.currentItem} saved as: ${(viewPager.currentItem / 2) + 1}")
-                    SharedPreferencesManager.savePageNumber(this, (viewPager.currentItem / 2) + 1)
-                }
-            } else {
-                Log.d("PageNumber", "Two: False: current: ${viewPager.currentItem}  saved as: ${viewPager.currentItem / 2}")
-                SharedPreferencesManager.savePageNumber(this, viewPager.currentItem / 2)
+
+            else -> {
+                val first = (currentPage * 2) + 1
+                val second = first + 1
+                val text = if (first == totalPages) "$first" else "$first - $second"
+                if (ltr) "$text / $totalPages" else "$totalPages / $text"
             }
+        }
+
+        seekBar.progress = calculateSeekBarProgress(currentPage)
+        tvPageIndicator.text = pageText
+    }
+
+    private fun calculateSeekBarProgress(currentPage: Int): Int {
+        return when {
+            SharedPreferencesManager.isOnePageMode(this) -> currentPage
+            SharedPreferencesManager.isCoverPageSeparate(this) ->
+                if (currentPage * 2 == totalPages) (currentPage * 2) - 1 else currentPage * 2
+            else -> (currentPage * 2) + 1
         }
     }
 
@@ -416,15 +467,24 @@ class MainActivity : AppCompatActivity() {
         startActivityForResult(intent, PICK_PDF_FILE)
     }
 
+    private fun computeUriHash(context: Context, uri: Uri): String {
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return ""
+        val md = MessageDigest.getInstance("SHA-256")
+        val digest = md.digest(inputStream.readBytes())
+        return digest.joinToString("") { "%02x".format(it) }
+    }
+
     private fun loadFile(uri: Uri) {
         try {
-            SharedPreferencesManager.saveUri(this, uri.toString())
+            val saveUri = computeUriHash(this, uri)
+            SharedPreferencesManager.saveUri(this, saveUri)
             tvOpenFile.visibility = View.GONE
             viewPager.visibility = View.VISIBLE
 
             val fileDescriptor = contentResolver.openFileDescriptor(uri, "r")
             if (fileDescriptor != null) {
                 pdfRenderer = PdfRenderer(fileDescriptor)
+                totalPages = pdfRenderer!!.pageCount
                 setupPdfViewer()
 
                 // Update title with file name
@@ -509,22 +569,18 @@ class MainActivity : AppCompatActivity() {
         viewPager.adapter = pdfAdapter
 
         // Setup page indicator and seekbar
-        val totalPages = pdfAdapter?.itemCount ?: 0
         val currentPage = SharedPreferencesManager.loadPageNumber(this)
         Log.d("PageNumber", "Loaded as: $currentPage")
 
         viewPager.setCurrentItem(currentPage, false)
-        updatePageIndicator(currentPage, totalPages)
-
         seekBar.max = maxOf(0, totalPages - 1)
-        seekBar.progress = currentPage
+        updatePageIndicator(currentPage)
 
         // Setup ViewPager2 callback
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 currentPageIndex = position
-                updatePageIndicator(position, totalPages)
-                seekBar.progress = position
+                updatePageIndicator(position)
             }
         })
 
@@ -532,7 +588,15 @@ class MainActivity : AppCompatActivity() {
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    viewPager.currentItem = progress
+                    if (SharedPreferencesManager.isOnePageMode(this@MainActivity)) {
+                        viewPager.currentItem = progress
+                    } else {
+                        if (SharedPreferencesManager.isCoverPageSeparate(this@MainActivity)) {
+                            viewPager.currentItem = (progress / 2) + 1
+                        } else {
+                            viewPager.currentItem = progress / 2
+                        }
+                    }
                 }
             }
 
@@ -542,45 +606,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun Int.dpToPx(context: Context): Int = (this * context.resources.displayMetrics.density).toInt()
-
-    private fun updatePageIndicator(currentPage: Int, totalPages: Int) {
-        if (SharedPreferencesManager.isOnePageMode(this)) {
-            Log.d("PageNumber", "ItemCount: ${pdfAdapter?.itemCount}")
-            if (SharedPreferencesManager.isLeftToRightMode(this)) {
-                tvPageIndicator.text = "${currentPage + 1} / ${totalPages}"
-            } else {
-                tvPageIndicator.text = "${totalPages} / ${currentPage + 1}"
-            }
-        } else {
-            if (SharedPreferencesManager.isCoverPageSeparate(this)) {
-                Log.d("PageNumber", "ItemCount: ${pdfAdapter?.itemCount}")
-                if (currentPage == 0) {
-                    if (SharedPreferencesManager.isLeftToRightMode(this)) {
-                        tvPageIndicator.text = "1 / ${totalPages * 2}"
-                    } else {
-                        tvPageIndicator.text = "${totalPages * 2} / 1"
-                    }
-                } else {
-                    if (SharedPreferencesManager.isLeftToRightMode(this)) {
-                        tvPageIndicator.text =
-                            "${currentPage * 2} - ${(currentPage * 2) + 1} / ${(totalPages * 2) - 2}"
-                    } else {
-                        tvPageIndicator.text =
-                            "${(totalPages * 2) - 2} / ${(currentPage * 2) + 1} - ${currentPage * 2}"
-                    }
-                }
-            } else {
-                Log.d("PageNumber", "ItemCount: ${pdfAdapter?.itemCount}")
-                if (SharedPreferencesManager.isLeftToRightMode(this)) {
-                    tvPageIndicator.text =
-                        "${(currentPage * 2) + 1} - ${(currentPage * 2) + 2} / ${totalPages * 2}"
-                } else {
-                    tvPageIndicator.text =
-                        "${totalPages * 2} / ${(currentPage * 2) + 2} - ${(currentPage * 2) + 1}"
-                }
-            }
-        }
-    }
 
     private fun toggleBarsVisibility() {
         barsVisible = !barsVisible
@@ -624,6 +649,28 @@ class MainActivity : AppCompatActivity() {
 
         if (requestCode == PICK_PDF_FILE && resultCode == Activity.RESULT_OK) {
             data?.data?.also { uri ->
+                val uriHash = computeUriHash(this, uri)
+                if (uriHash != SharedPreferencesManager.loadUri(this)) {
+                    SharedPreferencesManager.setOnePageMode(this, true)
+                    SharedPreferencesManager.savePageNumber(this, 0)
+                    SharedPreferencesManager.setInvertEnabled(this, false)
+                    SharedPreferencesManager.setGrayscaleEnabled(this, false)
+                    SharedPreferencesManager.setSepiaEnabled(this, false)
+                    SharedPreferencesManager.setLandscapeOrientation(this, false)
+                }
+
+                if (SharedPreferencesManager.isLandscapeOrientation(this)) {
+                    btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
+                } else {
+                    btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
+                }
+
+                if (SharedPreferencesManager.isOnePageMode(this)) {
+                    tvPageCount.text = "1"
+                } else {
+                    tvPageCount.text = "2"
+                }
+
                 loadFile(uri)
             }
         }
