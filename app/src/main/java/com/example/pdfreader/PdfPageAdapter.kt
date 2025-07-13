@@ -4,9 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
-import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.pdf.PdfRenderer
 import android.view.LayoutInflater
@@ -14,19 +11,22 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import jp.co.cyberagent.android.gpuimage.GPUImage
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageColorInvertFilter
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageGrayscaleFilter
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageSepiaToneFilter
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageSharpenFilter
 
 class PdfPageAdapter(
     private val pdfRenderer: PdfRenderer,
     private val isOnePageMode: Boolean,
     private val isCoverPageSeparate: Boolean,
-    private val onLongPress: () -> Unit
+    private val onSingleTap: () -> Unit
 ) : RecyclerView.Adapter<PdfPageAdapter.PdfPageViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PdfPageViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_pdf_page, parent, false)
-        return PdfPageViewHolder(view, onLongPress)
+        return PdfPageViewHolder(view, onSingleTap)
     }
 
     override fun onBindViewHolder(holder: PdfPageViewHolder, position: Int) {
@@ -53,7 +53,7 @@ class PdfPageAdapter(
 
     class PdfPageViewHolder(
         itemView: View,
-        private val onLongPress: () -> Unit
+        private val onSingleTap: () -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
 
         private val zoomableImageView: ZoomableImageView = itemView.findViewById(R.id.zoomableImageView)
@@ -65,8 +65,8 @@ class PdfPageAdapter(
         fun getZoomableImageView(): ZoomableImageView = zoomableImageView
 
         init {
-            zoomableImageView.setOnLongPressToggleListener {
-                onLongPress()
+            zoomableImageView.setOnSingleTapToggleListener {
+                onSingleTap()
             }
 
             zoomableImageView.setOnZoomChangeListener { isZoomed ->
@@ -129,19 +129,18 @@ class PdfPageAdapter(
 
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
 
-            var processedBitmap = bitmap
-//            processedBitmap = applyGpuSharpenFilter(bitmap, context)
+            var processedBitmap = applyGpuSharpenFilter(bitmap, context)
 
             if (SharedPreferencesManager.isGrayscaleEnabled(context)) {
-                processedBitmap = applyGrayscaleFilter(processedBitmap)
+                processedBitmap = applyGrayscaleFilter(processedBitmap, context)
             }
 
             if (SharedPreferencesManager.isInvertEnabled(context)) {
-                processedBitmap = applyInvertFilter(processedBitmap)
+                processedBitmap = applyInvertFilter(processedBitmap, context)
             }
 
             if (SharedPreferencesManager.isSepiaEnabled(context)) {
-                processedBitmap = applySepiaFilter(processedBitmap)
+                processedBitmap = applySepiaFilter(processedBitmap, context)
             }
 
             return processedBitmap
@@ -154,62 +153,25 @@ class PdfPageAdapter(
             return gpuImage.bitmapWithFilterApplied
         }
 
-
-        private fun applyGrayscaleFilter(src: Bitmap): Bitmap {
-            val bmpGrayscale = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bmpGrayscale)
-            val paint = Paint()
-
-            val colorMatrix = ColorMatrix()
-            colorMatrix.setSaturation(0f) // Set to grayscale
-
-            paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
-            canvas.drawBitmap(src, 0f, 0f, paint)
-
-            return bmpGrayscale
+        private fun applyGrayscaleFilter(bitmap: Bitmap, context: Context): Bitmap {
+            val gpuImage = GPUImage(context)
+            gpuImage.setImage(bitmap) // load image
+            gpuImage.setFilter(GPUImageGrayscaleFilter())
+            return gpuImage.bitmapWithFilterApplied
         }
 
-        private fun applyInvertFilter(src: Bitmap): Bitmap {
-            val bmpInverted = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bmpInverted)
-            val paint = Paint()
-
-            val invertMatrix = ColorMatrix(
-                floatArrayOf(
-                    -1f,  0f,  0f,  0f, 255f,
-                    0f, -1f,  0f,  0f, 255f,
-                    0f,  0f, -1f,  0f, 255f,
-                    0f,  0f,  0f,  1f,   0f
-                )
-            )
-
-            paint.colorFilter = ColorMatrixColorFilter(invertMatrix)
-            canvas.drawBitmap(src, 0f, 0f, paint)
-
-            return bmpInverted
+        private fun applyInvertFilter(bitmap: Bitmap, context: Context): Bitmap {
+            val gpuImage = GPUImage(context)
+            gpuImage.setImage(bitmap) // load image
+            gpuImage.setFilter(GPUImageColorInvertFilter())
+            return gpuImage.bitmapWithFilterApplied
         }
 
-        private fun applySepiaFilter(src: Bitmap): Bitmap {
-            val sepia = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
-
-            val canvas = Canvas(sepia)
-            val paint = Paint()
-
-            val sepiaMatrix = ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        0.393f, 0.769f, 0.189f, 0f, 0f,
-                        0.349f, 0.686f, 0.168f, 0f, 0f,
-                        0.272f, 0.534f, 0.131f, 0f, 0f,
-                        0f,     0f,     0f,     1f, 0f
-                    )
-                )
-            }
-
-            paint.colorFilter = ColorMatrixColorFilter(sepiaMatrix)
-            canvas.drawBitmap(src, 0f, 0f, paint)
-
-            return sepia
+        private fun applySepiaFilter(bitmap: Bitmap, context: Context): Bitmap {
+            val gpuImage = GPUImage(context)
+            gpuImage.setImage(bitmap) // load image
+            gpuImage.setFilter(GPUImageSepiaToneFilter())
+            return gpuImage.bitmapWithFilterApplied
         }
 
         private fun createDualPageBitmap(

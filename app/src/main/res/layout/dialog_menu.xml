@@ -87,13 +87,6 @@
 
     </LinearLayout>
 
-    <View
-        android:id="@+id/switchView"
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:background="@color/divider_grey"
-        android:visibility="gone"/>
-
     <LinearLayout
         android:id="@+id/switchLayout"
         android:layout_width="match_parent"
@@ -111,6 +104,28 @@
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/switchToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/switchLayoutTwo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Auto-rotate to landscape in\ntwo-page mode and vice versa"
+            style="@style/AppBaseText"/>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchToggleTwo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
@@ -222,7 +237,8 @@
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/switchInvert"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:checked="true"/>
 
     </LinearLayout>
 

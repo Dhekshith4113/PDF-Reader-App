@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 
 object SharedPreferencesManager {
-    private const val PREFS_NAME = "AppPrefs"
+    private const val PREFS_NAME = "PDFReaderPrefs"
     private const val KEY_LEFT_TO_RIGHT_MODE = "left_to_right_mode"
     private const val KEY_ONE_PAGE_MODE = "one_page_mode"
     private const val KEY_COVER_PAGE_SEPARATE = "cover_page_separate"
@@ -16,6 +16,7 @@ object SharedPreferencesManager {
     private const val KEY_INVERT_ENABLED = "invert_enabled"
     private const val KEY_GRAYSCALE_ENABLED = "grayscale_enabled"
     private const val KEY_SEPIA_ENABLED = "sepia_enabled"
+    private const val KEY_AUTO_ROTATE_ENABLED = "auto_rotate_enabled"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -43,6 +44,14 @@ object SharedPreferencesManager {
 
     fun setCoverPageSeparate(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_COVER_PAGE_SEPARATE, enabled).apply()
+    }
+
+    fun isAutoRotateEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_AUTO_ROTATE_ENABLED, true)
+    }
+
+    fun setAutoRotateEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_AUTO_ROTATE_ENABLED, enabled).apply()
     }
 
     fun isVerticalScrollMode(context: Context): Boolean {

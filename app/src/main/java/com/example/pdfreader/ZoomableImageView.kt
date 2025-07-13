@@ -36,14 +36,14 @@ class ZoomableImageView @JvmOverloads constructor(
     private var bottom = 0f
     private var originalBitmapWidth = 0f
     private var originalBitmapHeight = 0f
-    private var isLongPressToggle = false
+    private var isSingleTapToggle = false
 
     private val matrix = Matrix()
     private val matrixValues = FloatArray(9)
     private var gestureDetector: GestureDetector? = null
     private var scaleGestureDetector: ScaleGestureDetector? = null
     private var onZoomChangeListener: ((Boolean) -> Unit)? = null
-    private var onLongPressToggle: ((Boolean) -> Unit)? = null
+    private var onSingleTapToggle: ((Boolean) -> Unit)? = null
 
     companion object {
         private const val NONE = 0
@@ -63,8 +63,8 @@ class ZoomableImageView @JvmOverloads constructor(
         onZoomChangeListener = listener
     }
 
-    fun setOnLongPressToggleListener(listener: (Boolean) -> Unit) {
-        onLongPressToggle = listener
+    fun setOnSingleTapToggleListener(listener: (Boolean) -> Unit) {
+        onSingleTapToggle = listener
     }
 
     // Add method to reset zoom
@@ -119,6 +119,13 @@ class ZoomableImageView @JvmOverloads constructor(
     }
 
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
+        override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+            super.onSingleTapConfirmed(e)
+            isSingleTapToggle = !isSingleTapToggle
+            onSingleTapToggle?.invoke(isSingleTapToggle) // Return the toggled value
+            return true
+        }
+
         override fun onDoubleTap(e: MotionEvent): Boolean {
             val origScale = saveScale
             val targetScale = if (saveScale == minZoom) 2f else minZoom
@@ -138,12 +145,6 @@ class ZoomableImageView @JvmOverloads constructor(
 
             onZoomChangeListener?.invoke(saveScale > minZoom)
             return true
-        }
-
-        override fun onLongPress(e: MotionEvent) {
-            super.onLongPress(e)
-            isLongPressToggle = !isLongPressToggle
-            onLongPressToggle?.invoke(isLongPressToggle) // Return the toggled value
         }
     }
 

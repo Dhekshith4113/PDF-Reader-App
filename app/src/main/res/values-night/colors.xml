@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="black">#050505</color>
+    <color name="white">#CDCDCD</color>
 
-    <color name="text_color">#FFFFFF</color>
-    <color name="background_color">#000000</color>
+    <color name="text_color">#CDCDCD</color>
+    <color name="background_color">#121212</color>
     <color name="divider_grey">#222222</color>
-    <color name="bar_grey">#232323</color>
+    <color name="bar_grey">#2E2E2E</color>
 
 </resources>

@@ -71,10 +71,9 @@ class MainActivity : AppCompatActivity() {
         if (intent?.action == Intent.ACTION_VIEW && intent.data != null) {
             val pdfUri = intent.data!!
             try {
-                contentResolver.takePersistableUriPermission(pdfUri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                contentResolver.takePersistableUriPermission(pdfUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             } catch (e: Exception) {
-                Toast.makeText(this, "Error loading PDF: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.d("MainActivity", "${e.message}")
             }
 
             val uriHash = computeUriHash(this, pdfUri)
@@ -184,9 +183,10 @@ class MainActivity : AppCompatActivity() {
         val btnRTL = dialogView.findViewById<RadioButton>(R.id.btnRTL)
         val btnOnePage = dialogView.findViewById<RadioButton>(R.id.btnOnePage)
         val btnTwoPage = dialogView.findViewById<RadioButton>(R.id.btnTwoPage)
-        val switchView = dialogView.findViewById<View>(R.id.switchView)
         val switchLayout = dialogView.findViewById<LinearLayout>(R.id.switchLayout)
+        val switchLayoutTwo = dialogView.findViewById<LinearLayout>(R.id.switchLayoutTwo)
         val switchToggle = dialogView.findViewById<SwitchCompat>(R.id.switchToggle)
+        val switchToggleTwo = dialogView.findViewById<SwitchCompat>(R.id.switchToggleTwo)
         val btnVertical = dialogView.findViewById<RadioButton>(R.id.btnVertical)
         val btnHorizontal = dialogView.findViewById<RadioButton>(R.id.btnHorizontal)
         val btnLow = dialogView.findViewById<RadioButton>(R.id.btnLow)
@@ -201,9 +201,10 @@ class MainActivity : AppCompatActivity() {
         btnRTL.isChecked = !SharedPreferencesManager.isLeftToRightMode(this)
         btnOnePage.isChecked = SharedPreferencesManager.isOnePageMode(this)
         btnTwoPage.isChecked = !SharedPreferencesManager.isOnePageMode(this)
-        switchView.visibility = if (SharedPreferencesManager.isOnePageMode(this)) View.GONE else View.VISIBLE
         switchLayout.visibility = if (SharedPreferencesManager.isOnePageMode(this)) View.GONE else View.VISIBLE
+        switchLayoutTwo.visibility = if (SharedPreferencesManager.isOnePageMode(this)) View.GONE else View.VISIBLE
         switchToggle.isChecked = SharedPreferencesManager.isCoverPageSeparate(this)
+        switchToggleTwo.isChecked = SharedPreferencesManager.isAutoRotateEnabled(this)
         btnVertical.isChecked = SharedPreferencesManager.isVerticalScrollMode(this)
         btnHorizontal.isChecked = !SharedPreferencesManager.isVerticalScrollMode(this)
         switchInvert.isChecked = SharedPreferencesManager.isInvertEnabled(this)
@@ -256,8 +257,8 @@ class MainActivity : AppCompatActivity() {
             tvPageCount.text = "1"
             rememberPageNumber()
             setupPdfViewer()
-            switchView.visibility = View.GONE
             switchLayout.visibility = View.GONE
+            switchLayoutTwo.visibility = View.GONE
         }
 
         btnTwoPage.setOnClickListener {
@@ -267,8 +268,8 @@ class MainActivity : AppCompatActivity() {
             tvPageCount.text = "2"
             rememberPageNumber()
             setupPdfViewer()
-            switchView.visibility = View.VISIBLE
             switchLayout.visibility = View.VISIBLE
+            switchLayoutTwo.visibility = View.VISIBLE
         }
 
         switchToggle.setOnCheckedChangeListener { _, isChecked ->
@@ -279,6 +280,16 @@ class MainActivity : AppCompatActivity() {
             }
             SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
             Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            setupPdfViewer()
+        }
+
+        switchToggleTwo.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                SharedPreferencesManager.setAutoRotateEnabled(this, true)
+            } else {
+                SharedPreferencesManager.setAutoRotateEnabled(this, false)
+            }
+            rememberPageNumber()
             setupPdfViewer()
         }
 
@@ -516,10 +527,27 @@ class MainActivity : AppCompatActivity() {
     private fun setupPdfViewer() {
         val renderer = pdfRenderer ?: return
 
-        val isOnePageMode = SharedPreferencesManager.isOnePageMode(this)
+        var isOnePageMode = SharedPreferencesManager.isOnePageMode(this)
+        var isLandscapeMode = SharedPreferencesManager.isLandscapeOrientation(this)
         val isCoverPageSeparate = SharedPreferencesManager.isCoverPageSeparate(this)
         val isVerticalScroll = SharedPreferencesManager.isVerticalScrollMode(this)
         val isLeftToRight = SharedPreferencesManager.isLeftToRightMode(this)
+
+        if (SharedPreferencesManager.isAutoRotateEnabled(this)) {
+            isLandscapeMode = !SharedPreferencesManager.isOnePageMode(this)
+
+            if (isLandscapeMode) {
+                btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
+                SharedPreferencesManager.setOnePageMode(this, false)
+                isOnePageMode = SharedPreferencesManager.isOnePageMode(this)
+                tvPageCount.text = "2"
+            } else {
+                btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
+                SharedPreferencesManager.setOnePageMode(this, true)
+                isOnePageMode = SharedPreferencesManager.isOnePageMode(this)
+                tvPageCount.text = "1"
+            }
+        }
 
         // Set ViewPager2 orientation
         viewPager.orientation = if (isVerticalScroll) {
@@ -535,7 +563,7 @@ class MainActivity : AppCompatActivity() {
             View.LAYOUT_DIRECTION_RTL
         }
 
-        if (!SharedPreferencesManager.isLandscapeOrientation(this)) {
+        if (!isLandscapeMode) {
             val layoutParams = viewPager.layoutParams as ViewGroup.MarginLayoutParams
             // Set new width and height
             layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
