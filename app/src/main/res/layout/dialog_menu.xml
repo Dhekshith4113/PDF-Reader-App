@@ -26,7 +26,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
-        android:text="Select Page Direction"
+        android:text="Page Direction"
         style="@style/AppBaseText"/>
 
     <LinearLayout
@@ -36,15 +36,17 @@
 
         <RadioButton
             android:id="@+id/btnLTR"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="Left to Right"
             style="@style/AppBaseText"/>
 
         <RadioButton
             android:id="@+id/btnRTL"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="Right to Left"
             style="@style/AppBaseText"/>
 
@@ -59,7 +61,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
-        android:text="Select Page View"
+        android:text="Page View"
         style="@style/AppBaseText"/>
 
     <LinearLayout
@@ -69,26 +71,21 @@
 
         <RadioButton
             android:id="@+id/btnOnePage"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="One page"
             style="@style/AppBaseText"/>
 
         <RadioButton
             android:id="@+id/btnTwoPage"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="Two Page"
             style="@style/AppBaseText"/>
 
     </LinearLayout>
-
-    <View
-        android:id="@+id/switchView"
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:background="@color/divider_grey"
-        android:visibility="gone"/>
 
     <LinearLayout
         android:id="@+id/switchLayout"
@@ -102,11 +99,33 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Select cover page seperately"
+            android:text="Show cover page seperately"
             style="@style/AppBaseText"/>
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/switchToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/switchLayoutTwo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Auto-rotate to landscape in\ntwo-page mode and vice versa"
+            style="@style/AppBaseText"/>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchToggleTwo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
@@ -121,7 +140,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
-        android:text="Select Scroll direction"
+        android:text="Scroll direction"
         style="@style/AppBaseText"/>
 
     <LinearLayout
@@ -131,17 +150,135 @@
 
         <RadioButton
             android:id="@+id/btnVertical"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="Vertical"
             style="@style/AppBaseText"/>
 
         <RadioButton
             android:id="@+id/btnHorizontal"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="Horizontal"
             style="@style/AppBaseText"/>
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="@color/divider_grey"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="Resolution"
+        style="@style/AppBaseText"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/btnLow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Low"
+            style="@style/AppBaseText"/>
+
+        <RadioButton
+            android:id="@+id/btnMedium"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Medium"
+            style="@style/AppBaseText"/>
+
+        <RadioButton
+            android:id="@+id/btnHigh"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="High"
+            style="@style/AppBaseText"/>
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="@color/divider_grey"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="Apply filters"
+        style="@style/AppBaseText"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Invert"
+            style="@style/AppBaseText"/>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchInvert"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Grayscale"
+            style="@style/AppBaseText"/>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchGrayscale"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Sepia"
+            style="@style/AppBaseText"/>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchSepia"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
 
     </LinearLayout>
 

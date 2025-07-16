@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/dialog_outline"
+    android:paddingHorizontal="18dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="Jump to page"
+        style="@style/AppTitleText"/>
+
+    <TextView
+        android:id="@+id/tvEnterPageNumber"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="Enter page number (0-0)"
+        style="@style/AppTitleText"/>
+
+    <EditText
+        android:id="@+id/etPageNumber"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:hint="Page number"
+        android:autofillHints=""
+        style="@style/AppBaseText"
+        android:inputType="number"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="18dp"
+        android:layout_gravity="center"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            style="@style/AppBaseText"
+            android:textColor="@color/background_color"
+            android:backgroundTint="@color/text_color"/>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/btnJump"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Jump"
+            style="@style/AppBaseText"
+            android:backgroundTint="@color/divider_grey"/>
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -22,8 +22,8 @@
 
         <ImageButton
             android:id="@+id/btnBack"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:layout_marginVertical="8dp"
             android:layout_marginStart="8dp"
             android:background="@android:color/transparent"
@@ -31,20 +31,53 @@
             android:src="@drawable/arrow_back_24"
             app:tint="@color/text_color" />
 
-        <TextView
-            android:id="@+id/tvTitle"
+        <HorizontalScrollView
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_height="36dp"
             android:layout_margin="8dp"
+            android:layout_weight="1"
+            android:scrollbars="none">
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:ellipsize="end"
+                android:lines="1"
+                android:layout_gravity="start|center"
+                android:gravity="center"
+                android:text="@string/app_name"
+                style="@style/AppTitleText"/>
+
+        </HorizontalScrollView>
+
+        <ImageButton
+            android:id="@+id/btnOrientation"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginVertical="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/image_button_outline"
+            android:contentDescription="Orientation button"
+            android:src="@drawable/mobile_portrait_24"
+            app:tint="@color/text_color" />
+
+        <TextView
+            android:id="@+id/tvPageCount"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginVertical="8dp"
+            android:layout_marginEnd="8dp"
             android:gravity="center"
-            android:text="@string/app_name"
-            style="@style/AppTitleText"/>
+            android:clickable="true"
+            android:text="1"
+            style="@style/AppTitleText"
+            android:background="@drawable/image_button_outline"/>
 
         <ImageButton
             android:id="@+id/btnMenu"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:layout_marginVertical="8dp"
             android:layout_marginEnd="8dp"
             android:background="@android:color/transparent"
@@ -72,12 +105,13 @@
         <TextView
             android:id="@+id/tvOpenFile"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_gravity="center"
             android:gravity="center"
             android:clickable="true"
             android:text="Tap to open a file"
             style="@style/AppBaseText"
+            android:textColor="#777777"
             android:visibility="visible"/>
 
     </FrameLayout>
@@ -96,13 +130,14 @@
 
         <TextView
             android:id="@+id/tvPageIndicator"
-            style="@style/AppBaseText"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+            android:layout_height="36dp"
             android:layout_marginVertical="8dp"
             android:layout_marginStart="8dp"
             android:gravity="center"
-            android:text="0 / 0" />
+            android:clickable="true"
+            android:text="0 / 0"
+            style="@style/AppBaseText"/>
 
         <SeekBar
             android:id="@+id/seekBar"
