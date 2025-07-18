@@ -184,9 +184,7 @@ class MainActivity : AppCompatActivity() {
         val btnOnePage = dialogView.findViewById<RadioButton>(R.id.btnOnePage)
         val btnTwoPage = dialogView.findViewById<RadioButton>(R.id.btnTwoPage)
         val switchLayout = dialogView.findViewById<LinearLayout>(R.id.switchLayout)
-        val switchLayoutTwo = dialogView.findViewById<LinearLayout>(R.id.switchLayoutTwo)
         val switchToggle = dialogView.findViewById<SwitchCompat>(R.id.switchToggle)
-        val switchToggleTwo = dialogView.findViewById<SwitchCompat>(R.id.switchToggleTwo)
         val btnVertical = dialogView.findViewById<RadioButton>(R.id.btnVertical)
         val btnHorizontal = dialogView.findViewById<RadioButton>(R.id.btnHorizontal)
         val btnLow = dialogView.findViewById<RadioButton>(R.id.btnLow)
@@ -202,9 +200,7 @@ class MainActivity : AppCompatActivity() {
         btnOnePage.isChecked = SharedPreferencesManager.isOnePageMode(this)
         btnTwoPage.isChecked = !SharedPreferencesManager.isOnePageMode(this)
         switchLayout.visibility = if (SharedPreferencesManager.isOnePageMode(this)) View.GONE else View.VISIBLE
-        switchLayoutTwo.visibility = if (SharedPreferencesManager.isOnePageMode(this)) View.GONE else View.VISIBLE
         switchToggle.isChecked = SharedPreferencesManager.isCoverPageSeparate(this)
-        switchToggleTwo.isChecked = SharedPreferencesManager.isAutoRotateEnabled(this)
         btnVertical.isChecked = SharedPreferencesManager.isVerticalScrollMode(this)
         btnHorizontal.isChecked = !SharedPreferencesManager.isVerticalScrollMode(this)
         switchInvert.isChecked = SharedPreferencesManager.isInvertEnabled(this)
@@ -258,7 +254,6 @@ class MainActivity : AppCompatActivity() {
             rememberPageNumber()
             setupPdfViewer()
             switchLayout.visibility = View.GONE
-            switchLayoutTwo.visibility = View.GONE
         }
 
         btnTwoPage.setOnClickListener {
@@ -269,7 +264,6 @@ class MainActivity : AppCompatActivity() {
             rememberPageNumber()
             setupPdfViewer()
             switchLayout.visibility = View.VISIBLE
-            switchLayoutTwo.visibility = View.VISIBLE
         }
 
         switchToggle.setOnCheckedChangeListener { _, isChecked ->
@@ -280,16 +274,6 @@ class MainActivity : AppCompatActivity() {
             }
             SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
             Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
-            setupPdfViewer()
-        }
-
-        switchToggleTwo.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                SharedPreferencesManager.setAutoRotateEnabled(this, true)
-            } else {
-                SharedPreferencesManager.setAutoRotateEnabled(this, false)
-            }
-            rememberPageNumber()
             setupPdfViewer()
         }
 
@@ -527,27 +511,11 @@ class MainActivity : AppCompatActivity() {
     private fun setupPdfViewer() {
         val renderer = pdfRenderer ?: return
 
-        var isOnePageMode = SharedPreferencesManager.isOnePageMode(this)
-        var isLandscapeMode = SharedPreferencesManager.isLandscapeOrientation(this)
+        val isOnePageMode = SharedPreferencesManager.isOnePageMode(this)
+        val isLandscapeMode = SharedPreferencesManager.isLandscapeOrientation(this)
         val isCoverPageSeparate = SharedPreferencesManager.isCoverPageSeparate(this)
         val isVerticalScroll = SharedPreferencesManager.isVerticalScrollMode(this)
         val isLeftToRight = SharedPreferencesManager.isLeftToRightMode(this)
-
-        if (SharedPreferencesManager.isAutoRotateEnabled(this)) {
-            isLandscapeMode = !SharedPreferencesManager.isOnePageMode(this)
-
-            if (isLandscapeMode) {
-                btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
-                SharedPreferencesManager.setOnePageMode(this, false)
-                isOnePageMode = SharedPreferencesManager.isOnePageMode(this)
-                tvPageCount.text = "2"
-            } else {
-                btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
-                SharedPreferencesManager.setOnePageMode(this, true)
-                isOnePageMode = SharedPreferencesManager.isOnePageMode(this)
-                tvPageCount.text = "1"
-            }
-        }
 
         // Set ViewPager2 orientation
         viewPager.orientation = if (isVerticalScroll) {
