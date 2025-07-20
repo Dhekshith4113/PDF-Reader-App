@@ -139,10 +139,6 @@ class PdfPageAdapter(
                 processedBitmap = applyInvertFilter(processedBitmap, context)
             }
 
-            if (SharedPreferencesManager.isSepiaEnabled(context)) {
-                processedBitmap = applySepiaFilter(processedBitmap, context)
-            }
-
             return processedBitmap
         }
 
@@ -164,13 +160,6 @@ class PdfPageAdapter(
             val gpuImage = GPUImage(context)
             gpuImage.setImage(bitmap) // load image
             gpuImage.setFilter(GPUImageColorInvertFilter())
-            return gpuImage.bitmapWithFilterApplied
-        }
-
-        private fun applySepiaFilter(bitmap: Bitmap, context: Context): Bitmap {
-            val gpuImage = GPUImage(context)
-            gpuImage.setImage(bitmap) // load image
-            gpuImage.setFilter(GPUImageSepiaToneFilter())
             return gpuImage.bitmapWithFilterApplied
         }
 

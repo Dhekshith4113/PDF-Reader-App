@@ -82,7 +82,6 @@ class MainActivity : AppCompatActivity() {
                 SharedPreferencesManager.savePageNumber(this, 0)
                 SharedPreferencesManager.setInvertEnabled(this, false)
                 SharedPreferencesManager.setGrayscaleEnabled(this, false)
-                SharedPreferencesManager.setSepiaEnabled(this, false)
                 SharedPreferencesManager.setLandscapeOrientation(this, false)
             }
 
@@ -192,7 +191,6 @@ class MainActivity : AppCompatActivity() {
         val btnHigh = dialogView.findViewById<RadioButton>(R.id.btnHigh)
         val switchInvert = dialogView.findViewById<SwitchCompat>(R.id.switchInvert)
         val switchGrayscale = dialogView.findViewById<SwitchCompat>(R.id.switchGrayscale)
-        val switchSepia = dialogView.findViewById<SwitchCompat>(R.id.switchSepia)
         val btnClose = dialogView.findViewById<Button>(R.id.btnClose)
 
         btnLTR.isChecked = SharedPreferencesManager.isLeftToRightMode(this)
@@ -205,7 +203,6 @@ class MainActivity : AppCompatActivity() {
         btnHorizontal.isChecked = !SharedPreferencesManager.isVerticalScrollMode(this)
         switchInvert.isChecked = SharedPreferencesManager.isInvertEnabled(this)
         switchGrayscale.isChecked = SharedPreferencesManager.isGrayscaleEnabled(this)
-        switchSepia.isChecked = SharedPreferencesManager.isSepiaEnabled(this)
 
         if (SharedPreferencesManager.getResolution(this) == "LOW") {
             btnLow.isChecked = true
@@ -332,13 +329,6 @@ class MainActivity : AppCompatActivity() {
             SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
             Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
             SharedPreferencesManager.setGrayscaleEnabled(this, isChecked)
-            setupPdfViewer()
-        }
-
-        switchSepia.setOnCheckedChangeListener { _, isChecked ->
-            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
-            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
-            SharedPreferencesManager.setSepiaEnabled(this, isChecked)
             setupPdfViewer()
         }
 
@@ -651,7 +641,6 @@ class MainActivity : AppCompatActivity() {
                     SharedPreferencesManager.savePageNumber(this, 0)
                     SharedPreferencesManager.setInvertEnabled(this, false)
                     SharedPreferencesManager.setGrayscaleEnabled(this, false)
-                    SharedPreferencesManager.setSepiaEnabled(this, false)
                     SharedPreferencesManager.setLandscapeOrientation(this, false)
                 }
 

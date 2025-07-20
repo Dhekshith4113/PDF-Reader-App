@@ -1,278 +1,266 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/dialog_outline"
     android:paddingVertical="8dp"
-    android:paddingHorizontal="18dp">
-
-    <TextView
-        android:id="@+id/tvOpenFile"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="Open file"
-        style="@style/AppBaseText"/>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:layout_marginTop="18dp"
-        android:background="@color/divider_grey"/>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="Page Direction"
-        style="@style/AppBaseText"/>
+    android:paddingHorizontal="18dp"
+    android:scrollbars="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <RadioButton
-            android:id="@+id/btnLTR"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Left to Right"
-            style="@style/AppBaseText"/>
-
-        <RadioButton
-            android:id="@+id/btnRTL"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Right to Left"
-            style="@style/AppBaseText"/>
-
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:background="@color/divider_grey"/>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="Page View"
-        style="@style/AppBaseText"/>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <RadioButton
-            android:id="@+id/btnOnePage"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="One page"
-            style="@style/AppBaseText"/>
-
-        <RadioButton
-            android:id="@+id/btnTwoPage"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Two Page"
-            style="@style/AppBaseText"/>
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/switchLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:visibility="gone">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
         <TextView
-            android:layout_width="0dp"
+            android:id="@+id/tvOpenFile"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Show cover page seperately"
+            android:layout_marginTop="18dp"
+            android:text="Open file"
             style="@style/AppBaseText"/>
 
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchToggle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:background="@color/divider_grey"/>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="Scroll direction"
-        style="@style/AppBaseText"/>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <RadioButton
-            android:id="@+id/btnVertical"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Vertical"
-            style="@style/AppBaseText"/>
-
-        <RadioButton
-            android:id="@+id/btnHorizontal"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Horizontal"
-            style="@style/AppBaseText"/>
-
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:background="@color/divider_grey"/>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="Resolution"
-        style="@style/AppBaseText"/>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <RadioButton
-            android:id="@+id/btnLow"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Low"
-            style="@style/AppBaseText"/>
-
-        <RadioButton
-            android:id="@+id/btnMedium"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Medium"
-            style="@style/AppBaseText"/>
-
-        <RadioButton
-            android:id="@+id/btnHigh"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="High"
-            style="@style/AppBaseText"/>
-
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:background="@color/divider_grey"/>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="Apply filters"
-        style="@style/AppBaseText"/>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal">
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="18dp"
+            android:background="@color/divider_grey"/>
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Invert"
+            android:layout_marginTop="18dp"
+            android:text="Page Direction"
             style="@style/AppBaseText"/>
 
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchInvert"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:checked="true"/>
+            android:orientation="horizontal">
 
-    </LinearLayout>
+            <RadioButton
+                android:id="@+id/btnLTR"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Left to Right"
+                style="@style/AppBaseText"/>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/btnRTL"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Right to Left"
+                style="@style/AppBaseText"/>
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/divider_grey"/>
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Grayscale"
+            android:layout_marginTop="18dp"
+            android:text="Page View"
             style="@style/AppBaseText"/>
 
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchGrayscale"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-    </LinearLayout>
+            <RadioButton
+                android:id="@+id/btnOnePage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="One page"
+                style="@style/AppBaseText"/>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/btnTwoPage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Two Page"
+                style="@style/AppBaseText"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/switchLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Show cover page seperately"
+                style="@style/AppBaseText"/>
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchToggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/divider_grey"/>
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Sepia"
+            android:layout_marginTop="18dp"
+            android:text="Scroll direction"
             style="@style/AppBaseText"/>
 
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchSepia"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/btnVertical"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Vertical"
+                style="@style/AppBaseText"/>
+
+            <RadioButton
+                android:id="@+id/btnHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Horizontal"
+                style="@style/AppBaseText"/>
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/divider_grey"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Resolution"
+            style="@style/AppBaseText"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/btnLow"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Low"
+                style="@style/AppBaseText"/>
+
+            <RadioButton
+                android:id="@+id/btnMedium"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Medium"
+                style="@style/AppBaseText"/>
+
+            <RadioButton
+                android:id="@+id/btnHigh"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="High"
+                style="@style/AppBaseText"/>
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/divider_grey"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Apply filters"
+            style="@style/AppBaseText"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Invert"
+                style="@style/AppBaseText"/>
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchInvert"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Grayscale"
+                style="@style/AppBaseText"/>
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchGrayscale"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/divider_grey"/>
+
+        <Button
+            android:id="@+id/btnClose"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="8dp"
+            android:layout_gravity="center"
+            android:text="Done"
+            android:backgroundTint="@color/divider_grey"
+            style="@style/AppBaseText"/>
 
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:background="@color/divider_grey"/>
-
-    <Button
-        android:id="@+id/btnClose"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginVertical="8dp"
-        android:layout_gravity="center"
-        android:text="Done"
-        android:backgroundTint="@color/divider_grey"
-        style="@style/AppBaseText"/>
-
-</LinearLayout>
+</ScrollView>
