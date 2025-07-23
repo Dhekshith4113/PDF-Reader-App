@@ -15,8 +15,6 @@ object SharedPreferencesManager {
     private const val KEY_LANDSCAPE_ORIENTATION = "landscape_orientation"
     private const val KEY_INVERT_ENABLED = "invert_enabled"
     private const val KEY_GRAYSCALE_ENABLED = "grayscale_enabled"
-    private const val KEY_SEPIA_ENABLED = "sepia_enabled"
-    private const val KEY_AUTO_ROTATE_ENABLED = "auto_rotate_enabled"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -44,14 +42,6 @@ object SharedPreferencesManager {
 
     fun setCoverPageSeparate(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_COVER_PAGE_SEPARATE, enabled).apply()
-    }
-
-    fun isAutoRotateEnabled(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_AUTO_ROTATE_ENABLED, true)
-    }
-
-    fun setAutoRotateEnabled(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_AUTO_ROTATE_ENABLED, enabled).apply()
     }
 
     fun isVerticalScrollMode(context: Context): Boolean {
@@ -108,13 +98,5 @@ object SharedPreferencesManager {
 
     fun setGrayscaleEnabled(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_GRAYSCALE_ENABLED, enabled).apply()
-    }
-
-    fun isSepiaEnabled(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_SEPIA_ENABLED, false)
-    }
-
-    fun setSepiaEnabled(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_SEPIA_ENABLED, enabled).apply()
     }
 }
