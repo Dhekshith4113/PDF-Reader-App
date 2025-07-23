@@ -127,9 +127,19 @@ class PdfPageAdapter(
                 Bitmap.Config.ARGB_8888
             )
 
-            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+            val backgroundBitmap = Bitmap.createBitmap(
+                page.width * resolution,
+                page.height * resolution,
+                Bitmap.Config.ARGB_8888
+            )
 
-            var processedBitmap = applyGpuSharpenFilter(bitmap, context)
+            val canvas = Canvas(backgroundBitmap)
+            canvas.drawColor(Color.WHITE)
+            canvas.drawBitmap(bitmap, 0f, 0f, null)
+
+            page.render(backgroundBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+
+            var processedBitmap = applyGpuSharpenFilter(backgroundBitmap, context)
 
             if (SharedPreferencesManager.isGrayscaleEnabled(context)) {
                 processedBitmap = applyGrayscaleFilter(processedBitmap, context)
@@ -145,7 +155,7 @@ class PdfPageAdapter(
         private fun applyGpuSharpenFilter(bitmap: Bitmap, context: Context): Bitmap {
             val gpuImage = GPUImage(context)
             gpuImage.setImage(bitmap) // load image
-            gpuImage.setFilter(GPUImageSharpenFilter(1.0f)) // 0.0f (no sharpen) to ~4.0f (strong sharpen)
+            gpuImage.setFilter(GPUImageSharpenFilter(0.0f)) // 0.0f (no sharpen) to ~4.0f (strong sharpen)
             return gpuImage.bitmapWithFilterApplied
         }
 
