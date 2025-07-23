@@ -13,7 +13,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:paddingHorizontal="14dp"
         android:orientation="vertical">
 
@@ -22,7 +22,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="Open file"
+            android:text="@string/open_file"
             style="@style/AppBaseText"/>
 
         <View
@@ -35,7 +35,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="Page Direction"
+            android:text="@string/page_direction"
             style="@style/AppBaseText"/>
 
         <LinearLayout
@@ -48,7 +48,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Left to Right"
+                android:text="@string/left_to_right"
                 style="@style/AppBaseText"/>
 
             <RadioButton
@@ -56,7 +56,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Right to Left"
+                android:text="@string/right_to_left"
                 style="@style/AppBaseText"/>
 
         </LinearLayout>
@@ -70,7 +70,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="Page View"
+            android:text="@string/page_view"
             style="@style/AppBaseText"/>
 
         <LinearLayout
@@ -83,7 +83,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="One page"
+                android:text="@string/one_page"
                 style="@style/AppBaseText"/>
 
             <RadioButton
@@ -91,7 +91,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Two Page"
+                android:text="@string/two_page"
                 style="@style/AppBaseText"/>
 
         </LinearLayout>
@@ -108,7 +108,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Show cover page seperately"
+                android:text="@string/show_cover_page_seperately"
                 style="@style/AppBaseText"/>
 
             <androidx.appcompat.widget.SwitchCompat
@@ -127,7 +127,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="Scroll direction"
+            android:text="@string/scroll_direction"
             style="@style/AppBaseText"/>
 
         <LinearLayout
@@ -140,7 +140,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Vertical"
+                android:text="@string/vertical"
                 style="@style/AppBaseText"/>
 
             <RadioButton
@@ -148,7 +148,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Horizontal"
+                android:text="@string/horizontal"
                 style="@style/AppBaseText"/>
 
         </LinearLayout>
@@ -162,7 +162,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="Resolution"
+            android:text="@string/resolution"
             style="@style/AppBaseText"/>
 
         <LinearLayout
@@ -175,7 +175,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Low"
+                android:text="@string/low"
                 style="@style/AppBaseText"/>
 
             <RadioButton
@@ -183,7 +183,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Medium"
+                android:text="@string/medium"
                 style="@style/AppBaseText"/>
 
             <RadioButton
@@ -191,7 +191,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="High"
+                android:text="@string/high"
                 style="@style/AppBaseText"/>
 
         </LinearLayout>
@@ -205,7 +205,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="Apply filters"
+            android:text="@string/apply_filters"
             style="@style/AppBaseText"/>
 
         <LinearLayout
@@ -218,7 +218,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Invert"
+                android:text="@string/invert"
                 style="@style/AppBaseText"/>
 
             <androidx.appcompat.widget.SwitchCompat
@@ -239,7 +239,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Grayscale"
+                android:text="@string/grayscale"
                 style="@style/AppBaseText"/>
 
             <androidx.appcompat.widget.SwitchCompat
@@ -260,7 +260,7 @@
             android:layout_height="wrap_content"
             android:layout_marginVertical="8dp"
             android:layout_gravity="center"
-            android:text="Done"
+            android:text="@string/done"
             android:backgroundTint="@color/divider_grey"
             style="@style/AppBaseText"/>
 

@@ -361,7 +361,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        tvEnterPageNumber.text = "Enter page number (1 - $totalPages)"
+        "Enter page number (1 - $totalPages)".also { tvEnterPageNumber.text = it }
         setButtonState(false)
 
         etPageNumber.addTextChangedListener {

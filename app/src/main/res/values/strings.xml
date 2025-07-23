@@ -2,4 +2,27 @@
     <string name="app_name">PDF Reader</string>
     <string name="back_button">Back button</string>
     <string name="menu_button">Menu button</string>
+    <string name="open_file">Open file</string>
+    <string name="page_direction">Page Direction</string>
+    <string name="left_to_right">Left to Right</string>
+    <string name="right_to_left">Right to Left</string>
+    <string name="page_view">Page View</string>
+    <string name="one_page">One page</string>
+    <string name="two_page">Two Page</string>
+    <string name="show_cover_page_seperately">Show cover page seperately</string>
+    <string name="scroll_direction">Scroll direction</string>
+    <string name="vertical">Vertical</string>
+    <string name="horizontal">Horizontal</string>
+    <string name="resolution">Resolution</string>
+    <string name="low">Low</string>
+    <string name="medium">Medium</string>
+    <string name="high">High</string>
+    <string name="apply_filters">Apply filters</string>
+    <string name="invert">Invert</string>
+    <string name="grayscale">Grayscale</string>
+    <string name="done">Done</string>
+    <string name="orientation_button">Orientation button</string>
+    <string name="_1">1</string>
+    <string name="tap_to_open_a_file">Tap to open a file</string>
+    <string name="_0_0">0 / 0</string>
 </resources>
