@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.pdf.PdfRenderer
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +15,7 @@ import jp.co.cyberagent.android.gpuimage.GPUImage
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageColorInvertFilter
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageGrayscaleFilter
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageSharpenFilter
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class PdfPageAdapter(
     private val pdfRenderer: PdfRenderer,
@@ -22,10 +24,23 @@ class PdfPageAdapter(
     private val onSingleTap: () -> Unit
 ) : RecyclerView.Adapter<PdfPageAdapter.PdfPageViewHolder>() {
 
+    // Bitmap pool for memory reuse
+    private val bitmapPool = ConcurrentLinkedQueue<Bitmap>()
+    private val maxPoolSize = 10
+    
+    // GPU Image instance reuse
+    private var gpuImage: GPUImage? = null
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PdfPageViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_pdf_page, parent, false)
-        return PdfPageViewHolder(view, onSingleTap)
+        
+        // Initialize shared GPU Image instance
+        if (gpuImage == null) {
+            gpuImage = GPUImage(parent.context)
+        }
+        
+        return PdfPageViewHolder(view, onSingleTap, bitmapPool, gpuImage!!)
     }
 
     override fun onBindViewHolder(holder: PdfPageViewHolder, position: Int) {
@@ -49,16 +64,25 @@ class PdfPageAdapter(
             }
         }
     }
+    
+    override fun onViewRecycled(holder: PdfPageViewHolder) {
+        super.onViewRecycled(holder)
+        holder.recycleBitmap()
+    }
 
     class PdfPageViewHolder(
         itemView: View,
-        private val onSingleTap: () -> Unit
+        private val onSingleTap: () -> Unit,
+        private val bitmapPool: ConcurrentLinkedQueue<Bitmap>,
+        private val gpuImage: GPUImage
     ) : RecyclerView.ViewHolder(itemView) {
 
         private val zoomableImageView: ZoomableImageView = itemView.findViewById(R.id.zoomableImageView)
         private val resLow: Int = 2
         private val resMedium: Int = 3
         private val resHigh: Int = 4
+        
+        private var currentBitmap: Bitmap? = null
 
         // Expose the ZoomableImageView for external access (e.g., reset zoom)
         fun getZoomableImageView(): ZoomableImageView = zoomableImageView
@@ -71,12 +95,25 @@ class PdfPageAdapter(
             zoomableImageView.setOnZoomChangeListener { isZoomed ->
                 (itemView.context as? MainActivity)?.handleZoomState(isZoomed)
             }
-
+        }
+        
+        fun recycleBitmap() {
+            currentBitmap?.let { bitmap ->
+                // Return to global pool for better memory management
+                PerformanceHelper.returnBitmapToPool(bitmap)
+                
+                // Also try local pool if global is full
+                if (!bitmap.isRecycled && bitmapPool.size < 10) {
+                    bitmapPool.offer(bitmap)
+                }
+            }
+            currentBitmap = null
         }
 
         fun bindSinglePage(pdfRenderer: PdfRenderer, position: Int) {
             val page = pdfRenderer.openPage(position)
             val bitmap = createBitmapFromPage(page)
+            currentBitmap = bitmap
             zoomableImageView.setImageBitmap(bitmap)
             page.close()
         }
@@ -86,6 +123,7 @@ class PdfPageAdapter(
                 // First page alone
                 val page = pdfRenderer.openPage(0)
                 val bitmap = createBitmapFromPage(page)
+                currentBitmap = bitmap
                 zoomableImageView.setImageBitmap(bitmap)
                 page.close()
             } else {
@@ -101,12 +139,14 @@ class PdfPageAdapter(
                     val rightPageIndex = startPageIndex + 1
 
                     val bitmap = createDualPageBitmap(pdfRenderer, leftPageIndex, rightPageIndex)
+                    currentBitmap = bitmap
                     zoomableImageView.setImageBitmap(bitmap)
                 } else {
                     val leftPageIndex = startPageIndex + 1
                     val rightPageIndex = startPageIndex
 
                     val bitmap = createDualPageBitmap(pdfRenderer, leftPageIndex, rightPageIndex)
+                    currentBitmap = bitmap
                     zoomableImageView.setImageBitmap(bitmap)
                 }
             }
@@ -114,62 +154,87 @@ class PdfPageAdapter(
 
         private fun createBitmapFromPage(page: PdfRenderer.Page): Bitmap {
             val context = zoomableImageView.context
-            val resolution = when (SharedPreferencesManager.getResolution(context)) {
+            val preferredResolution = SharedPreferencesManager.getResolution(context) ?: "LOW"
+            val resolution = when (PerformanceHelper.getRecommendedResolution(context, preferredResolution)) {
                 "LOW" -> resLow
                 "MEDIUM" -> resMedium
                 else -> resHigh
             }
 
-            val bitmap = Bitmap.createBitmap(
-                page.width * resolution,
-                page.height * resolution,
-                Bitmap.Config.ARGB_8888
-            )
-
-            val backgroundBitmap = Bitmap.createBitmap(
-                page.width * resolution,
-                page.height * resolution,
-                Bitmap.Config.ARGB_8888
-            )
-
-            val canvas = Canvas(backgroundBitmap)
-            canvas.drawColor(Color.WHITE)
-            canvas.drawBitmap(bitmap, 0f, 0f, null)
-
-            page.render(backgroundBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-
-            var processedBitmap = applyGpuSharpenFilter(backgroundBitmap, context)
-
-            if (SharedPreferencesManager.isGrayscaleEnabled(context)) {
-                processedBitmap = applyGrayscaleFilter(processedBitmap, context)
+            // Try to reuse bitmap from pool
+            val targetWidth = page.width * resolution
+            val targetHeight = page.height * resolution
+            
+            var bitmap = PerformanceHelper.tryGetReusableBitmap(targetWidth, targetHeight)
+            if (bitmap == null) {
+                // Use optimal bitmap config for better performance
+                bitmap = Bitmap.createBitmap(
+                    targetWidth,
+                    targetHeight,
+                    PerformanceHelper.getOptimalBitmapConfig()
+                )
             }
 
-            if (SharedPreferencesManager.isInvertEnabled(context)) {
-                processedBitmap = applyInvertFilter(processedBitmap, context)
+            // Create white background directly on the bitmap
+            val canvas = Canvas(bitmap)
+            canvas.drawColor(Color.WHITE, PorterDuff.Mode.SRC)
+            
+            // Render PDF page directly to the bitmap
+            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+
+            // Apply filters efficiently (combine filters to minimize bitmap copies)
+            return applyFiltersOptimized(bitmap, context)
+        }
+        
+        private fun getReusableBitmap(width: Int, height: Int): Bitmap? {
+            val iterator = bitmapPool.iterator()
+            while (iterator.hasNext()) {
+                val pooledBitmap = iterator.next()
+                if (pooledBitmap.width == width && 
+                    pooledBitmap.height == height && 
+                    !pooledBitmap.isRecycled) {
+                    iterator.remove()
+                    return pooledBitmap
+                }
             }
-
-            return processedBitmap
+            return null
         }
 
-        private fun applyGpuSharpenFilter(bitmap: Bitmap, context: Context): Bitmap {
-            val gpuImage = GPUImage(context)
-            gpuImage.setImage(bitmap) // load image
-            gpuImage.setFilter(GPUImageSharpenFilter(0.0f)) // 0.0f (no sharpen) to ~4.0f (strong sharpen)
-            return gpuImage.bitmapWithFilterApplied
-        }
-
-        private fun applyGrayscaleFilter(bitmap: Bitmap, context: Context): Bitmap {
-            val gpuImage = GPUImage(context)
-            gpuImage.setImage(bitmap) // load image
-            gpuImage.setFilter(GPUImageGrayscaleFilter())
-            return gpuImage.bitmapWithFilterApplied
-        }
-
-        private fun applyInvertFilter(bitmap: Bitmap, context: Context): Bitmap {
-            val gpuImage = GPUImage(context)
-            gpuImage.setImage(bitmap) // load image
-            gpuImage.setFilter(GPUImageColorInvertFilter())
-            return gpuImage.bitmapWithFilterApplied
+        private fun applyFiltersOptimized(bitmap: Bitmap, context: Context): Bitmap {
+            val needsGrayscale = SharedPreferencesManager.isGrayscaleEnabled(context)
+            val needsInvert = SharedPreferencesManager.isInvertEnabled(context)
+            
+            // If no filters needed, return original
+            if (!needsGrayscale && !needsInvert) {
+                return bitmap
+            }
+            
+            // Apply all needed filters in one pass using GPU
+            gpuImage.setImage(bitmap)
+            
+            when {
+                needsGrayscale && needsInvert -> {
+                    // Create combined filter if both needed
+                    val grayscaleFilter = GPUImageGrayscaleFilter()
+                    val invertFilter = GPUImageColorInvertFilter()
+                    
+                    gpuImage.setFilter(grayscaleFilter)
+                    val intermediateBitmap = gpuImage.bitmapWithFilterApplied
+                    
+                    gpuImage.setImage(intermediateBitmap)
+                    gpuImage.setFilter(invertFilter)
+                    return gpuImage.bitmapWithFilterApplied
+                }
+                needsGrayscale -> {
+                    gpuImage.setFilter(GPUImageGrayscaleFilter())
+                    return gpuImage.bitmapWithFilterApplied
+                }
+                needsInvert -> {
+                    gpuImage.setFilter(GPUImageColorInvertFilter())
+                    return gpuImage.bitmapWithFilterApplied
+                }
+                else -> return bitmap
+            }
         }
 
         private fun createDualPageBitmap(
@@ -202,15 +267,19 @@ class PdfPageAdapter(
             val totalWidth = (leftWidth + rightWidth) * resolution
             val maxHeight = maxOf(leftHeight, rightHeight) * resolution
 
-            val combinedBitmap = Bitmap.createBitmap(
-                totalWidth,
-                maxHeight,
-                Bitmap.Config.ARGB_8888
-            )
+            // Try to reuse bitmap from pool
+            var combinedBitmap = PerformanceHelper.tryGetReusableBitmap(totalWidth, maxHeight)
+            if (combinedBitmap == null) {
+                combinedBitmap = Bitmap.createBitmap(
+                    totalWidth,
+                    maxHeight,
+                    PerformanceHelper.getOptimalBitmapConfig()
+                )
+            }
 
             val canvas = Canvas(combinedBitmap)
 
-            // Optional: set transparent background instead of white
+            // Set transparent background efficiently
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
 
             var currentX = 0f

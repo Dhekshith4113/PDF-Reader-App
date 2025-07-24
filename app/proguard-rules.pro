@@ -19,3 +19,35 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep GPU Image classes
+-keep class jp.co.cyberagent.android.gpuimage.** { *; }
+-dontwarn jp.co.cyberagent.android.gpuimage.**
+
+# Keep PDF renderer classes
+-keep class android.graphics.pdf.** { *; }
+
+# Optimization flags
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
+-optimizationpasses 5
+-allowaccessmodification
+
+# Remove logging calls in release
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int i(...);
+    public static int w(...);
+    public static int d(...);
+    public static int e(...);
+}
+
+# Keep ViewBinding classes
+-keep class * implements androidx.viewbinding.ViewBinding {
+    public static * inflate(android.view.LayoutInflater);
+    public static * inflate(android.view.LayoutInflater, android.view.ViewGroup, boolean);
+    public static * bind(android.view.View);
+}
+
+# Keep SharedPreferences optimization
+-keep class com.example.pdfreader.SharedPreferencesManager { *; }

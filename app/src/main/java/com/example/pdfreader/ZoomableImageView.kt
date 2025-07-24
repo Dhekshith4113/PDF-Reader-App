@@ -25,7 +25,7 @@ class ZoomableImageView @JvmOverloads constructor(
     private var translateY = 0f
     private var previousTranslateX = 0f
     private var previousTranslateY = 0f
-    private var maxZoom = 10f // Increased max zoom for better pinch zoom range
+    private var maxZoom = 25f // Increased max zoom for better pinch zoom range
     private var minZoom = 1f
     private var redundantXSpace = 0f
     private var redundantYSpace = 0f
@@ -45,10 +45,15 @@ class ZoomableImageView @JvmOverloads constructor(
     private var onZoomChangeListener: ((Boolean) -> Unit)? = null
     private var onSingleTapToggle: ((Boolean) -> Unit)? = null
 
+    // Performance optimization: cache frequently used values
+    private var isZoomed = false
+    private var matrixDirty = false
+
     companion object {
         private const val NONE = 0
         private const val DRAG = 1
         private const val ZOOM = 2
+        private const val MIN_DRAG_DISTANCE = 5f // Minimum distance to start drag
     }
 
     init {
@@ -73,6 +78,7 @@ class ZoomableImageView @JvmOverloads constructor(
         matrix.setScale(scale, scale)
         matrix.postTranslate(redundantXSpace, redundantYSpace)
         imageMatrix = matrix
+        isZoomed = false
         onZoomChangeListener?.invoke(false)
         invalidate()
     }
@@ -107,13 +113,14 @@ class ZoomableImageView @JvmOverloads constructor(
             fixTranslation()
 
             // Sync drag state after scaling to prevent snapping
-            matrix.getValues(matrixValues)
-            translateX = matrixValues[Matrix.MTRANS_X]
-            translateY = matrixValues[Matrix.MTRANS_Y]
-            previousTranslateX = translateX
-            previousTranslateY = translateY
+            updateMatrixValues()
 
-            onZoomChangeListener?.invoke(saveScale > minZoom)
+            // Update zoom state efficiently
+            val newZoomed = saveScale > minZoom
+            if (newZoomed != isZoomed) {
+                isZoomed = newZoomed
+                onZoomChangeListener?.invoke(isZoomed)
+            }
             return true
         }
     }
@@ -137,13 +144,14 @@ class ZoomableImageView @JvmOverloads constructor(
             fixTranslation()
 
             // Sync drag state to matrix
-            matrix.getValues(matrixValues)
-            translateX = matrixValues[Matrix.MTRANS_X]
-            translateY = matrixValues[Matrix.MTRANS_Y]
-            previousTranslateX = translateX
-            previousTranslateY = translateY
+            updateMatrixValues()
 
-            onZoomChangeListener?.invoke(saveScale > minZoom)
+            // Update zoom state efficiently
+            val newZoomed = saveScale > minZoom
+            if (newZoomed != isZoomed) {
+                isZoomed = newZoomed
+                onZoomChangeListener?.invoke(isZoomed)
+            }
             return true
         }
     }
@@ -164,28 +172,43 @@ class ZoomableImageView @JvmOverloads constructor(
                 previousTranslateX = translateX
                 previousTranslateY = translateY
                 mode = DRAG
+                matrixDirty = false
             }
 
             MotionEvent.ACTION_MOVE -> {
                 if (mode == DRAG && saveScale > minZoom) { // Only allow drag when zoomed in
-                    translateX = previousTranslateX + currentX - startX
-                    translateY = previousTranslateY + currentY - startY
+                    val deltaX = currentX - startX
+                    val deltaY = currentY - startY
+                    
+                    // Only start dragging if moved beyond minimum distance
+                    if (!matrixDirty && (Math.abs(deltaX) > MIN_DRAG_DISTANCE || Math.abs(deltaY) > MIN_DRAG_DISTANCE)) {
+                        matrixDirty = true
+                    }
+                    
+                    if (matrixDirty) {
+                        translateX = previousTranslateX + deltaX
+                        translateY = previousTranslateY + deltaY
 
-                    matrix.getValues(matrixValues)
-                    val x = matrixValues[Matrix.MTRANS_X]
-                    val y = matrixValues[Matrix.MTRANS_Y]
+                        matrix.getValues(matrixValues)
+                        val x = matrixValues[Matrix.MTRANS_X]
+                        val y = matrixValues[Matrix.MTRANS_Y]
 
-                    val deltaX = translateX - x
-                    val deltaY = translateY - y
+                        val deltaMatrixX = translateX - x
+                        val deltaMatrixY = translateY - y
 
-                    matrix.postTranslate(deltaX, deltaY)
-                    fixTranslation()
+                        matrix.postTranslate(deltaMatrixX, deltaMatrixY)
+                        fixTranslation()
+                    }
                 }
             }
 
             MotionEvent.ACTION_UP -> {
                 mode = NONE
-                onZoomChangeListener?.invoke(saveScale > minZoom)
+                val newZoomed = saveScale > minZoom
+                if (newZoomed != isZoomed) {
+                    isZoomed = newZoomed
+                    onZoomChangeListener?.invoke(isZoomed)
+                }
             }
 
             MotionEvent.ACTION_POINTER_UP -> {
@@ -196,6 +219,14 @@ class ZoomableImageView @JvmOverloads constructor(
         imageMatrix = matrix
         invalidate()
         return true
+    }
+    
+    private fun updateMatrixValues() {
+        matrix.getValues(matrixValues)
+        translateX = matrixValues[Matrix.MTRANS_X]
+        translateY = matrixValues[Matrix.MTRANS_Y]
+        previousTranslateX = translateX
+        previousTranslateY = translateY
     }
 
     private fun fixTranslation() {
@@ -268,7 +299,8 @@ class ZoomableImageView @JvmOverloads constructor(
 
             imageMatrix = matrix
 
-            onZoomChangeListener?.invoke(scale > minZoom)
+            isZoomed = scale > minZoom
+            onZoomChangeListener?.invoke(isZoomed)
         }
     }
 }

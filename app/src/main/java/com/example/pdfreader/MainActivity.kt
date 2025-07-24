@@ -16,6 +16,8 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
@@ -41,6 +43,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnBack: ImageButton
     private lateinit var btnMenu: ImageButton
     private lateinit var btnOrientation: ImageButton
+    private lateinit var btnZoomReset: ImageButton
     private lateinit var tvTitle: TextView
     private lateinit var tvOpenFile: TextView
     private lateinit var tvPageIndicator: TextView
@@ -54,9 +57,12 @@ class MainActivity : AppCompatActivity() {
     private var currentPageIndex = 0
     private var barsVisible = true
     private var totalPages: Int = 0
+    
+    // Cache animations for better performance
+    private var fadeInAnimation: Animation? = null
+    private var fadeOutAnimation: Animation? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
@@ -67,39 +73,60 @@ class MainActivity : AppCompatActivity() {
         }
 
         initViews()
+        initAnimations()
 
         if (intent?.action == Intent.ACTION_VIEW && intent.data != null) {
             val pdfUri = intent.data!!
-            try {
-                contentResolver.takePersistableUriPermission(pdfUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (e: Exception) {
+            handleIntentUri(pdfUri)
+        }
+    }
+    
+    private fun initAnimations() {
+        fadeInAnimation = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
+        fadeOutAnimation = AnimationUtils.loadAnimation(this, android.R.anim.fade_out)
+    }
+    
+    private fun handleIntentUri(pdfUri: Uri) {
+        try {
+            contentResolver.takePersistableUriPermission(pdfUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG_MODE) {
                 Log.d("MainActivity", "${e.message}")
             }
-
-            val uriHash = computeUriHash(this, pdfUri)
-            if (uriHash != SharedPreferencesManager.loadUri(this)) {
-                SharedPreferencesManager.setOnePageMode(this, true)
-                SharedPreferencesManager.savePageNumber(this, 0)
-                SharedPreferencesManager.setInvertEnabled(this, false)
-                SharedPreferencesManager.setGrayscaleEnabled(this, false)
-                SharedPreferencesManager.setLandscapeOrientation(this, false)
-            }
-
-            if (SharedPreferencesManager.isLandscapeOrientation(this)) {
-                btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
-            } else {
-                btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
-            }
-
-            if (SharedPreferencesManager.isOnePageMode(this)) {
-                tvPageCount.text = "1"
-            } else {
-                tvPageCount.text = "2"
-            }
-
-            loadFile(pdfUri)
         }
 
+        val uriHash = computeUriHash(this, pdfUri)
+        if (uriHash != SharedPreferencesManager.loadUri(this)) {
+            resetToDefaults()
+        }
+
+        updateOrientationButton()
+        updatePageCountText()
+        loadFile(pdfUri)
+    }
+    
+    private fun resetToDefaults() {
+        SharedPreferencesManager.setOnePageMode(this, true)
+        SharedPreferencesManager.savePageNumber(this, 0)
+        SharedPreferencesManager.setInvertEnabled(this, false)
+        SharedPreferencesManager.setGrayscaleEnabled(this, false)
+        SharedPreferencesManager.setLandscapeOrientation(this, false)
+    }
+    
+    private fun updateOrientationButton() {
+        if (SharedPreferencesManager.isLandscapeOrientation(this)) {
+            btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
+        } else {
+            btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
+        }
+    }
+    
+    private fun updatePageCountText() {
+        if (SharedPreferencesManager.isOnePageMode(this)) {
+            tvPageCount.text = "1"
+        } else {
+            tvPageCount.text = "2"
+        }
     }
 
     private fun initViews() {
@@ -108,6 +135,7 @@ class MainActivity : AppCompatActivity() {
         btnBack = findViewById(R.id.btnBack)
         btnMenu = findViewById(R.id.btnMenu)
         btnOrientation = findViewById(R.id.btnOrientation)
+        btnZoomReset = findViewById(R.id.btnZoomReset)
         tvTitle = findViewById(R.id.tvTitle)
         tvOpenFile = findViewById(R.id.tvOpenFile)
         tvPageCount = findViewById(R.id.tvPageCount)
@@ -115,37 +143,19 @@ class MainActivity : AppCompatActivity() {
         seekBar = findViewById(R.id.seekBar)
         viewPager = findViewById(R.id.viewPager)
 
-        if (SharedPreferencesManager.isLandscapeOrientation(this)) {
-            btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
-        } else {
-            btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
-        }
+        updateOrientationButton()
+        updatePageCountText()
 
-        if (SharedPreferencesManager.isOnePageMode(this)) {
-            tvPageCount.text = "1"
-        } else {
-            tvPageCount.text = "2"
-        }
-
-        btnBack.setOnClickListener {
-            finish()
-        }
-
-        btnMenu.setOnClickListener {
-            showMenuDialog()
-        }
-
+        setupClickListeners()
+    }
+    
+    private fun setupClickListeners() {
+        btnBack.setOnClickListener { finish() }
+        btnMenu.setOnClickListener { showMenuDialog() }
+        btnZoomReset.setOnClickListener { resetCurrentPageZoom() }
+        
         btnOrientation.setOnClickListener {
-            if (SharedPreferencesManager.isLandscapeOrientation(this)) {
-                SharedPreferencesManager.setLandscapeOrientation(this, false)
-                btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
-            } else {
-                SharedPreferencesManager.setLandscapeOrientation(this, true)
-                btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
-            }
-            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
-            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
-            setupPdfViewer()
+            toggleOrientation()
         }
 
         tvOpenFile.setOnClickListener {
@@ -153,21 +163,100 @@ class MainActivity : AppCompatActivity() {
         }
 
         tvPageCount.setOnClickListener {
-            if (SharedPreferencesManager.isOnePageMode(this)) {
-                SharedPreferencesManager.setOnePageMode(this, false)
-                tvPageCount.text = "2"
-            } else {
-                SharedPreferencesManager.setOnePageMode(this, true)
-                tvPageCount.text = "1"
-            }
-            rememberPageNumber()
-            setupPdfViewer()
+            togglePageMode()
         }
 
         tvPageIndicator.setOnClickListener {
             showJumpDialog()
         }
+    }
+    
+    private fun toggleOrientation() {
+        val isLandscape = SharedPreferencesManager.isLandscapeOrientation(this)
+        SharedPreferencesManager.setLandscapeOrientation(this, !isLandscape)
+        updateOrientationButton()
+        saveCurrentPage()
+        setupPdfViewer()
+    }
+    
+    private fun togglePageMode() {
+        val isOnePage = SharedPreferencesManager.isOnePageMode(this)
+        SharedPreferencesManager.setOnePageMode(this, !isOnePage)
+        updatePageCountText()
+        rememberPageNumber()
+        setupPdfViewer()
+    }
+    
+    private fun saveCurrentPage() {
+        SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
+        if (BuildConfig.DEBUG_MODE) {
+            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+        }
+    }
 
+    private fun computeUriHash(context: Context, uri: Uri): String {
+        return try {
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    val sizeIndex = it.getColumnIndex(OpenableColumns.SIZE)
+                    val name = if (nameIndex >= 0) it.getString(nameIndex) else uri.toString()
+                    val size = if (sizeIndex >= 0) it.getLong(sizeIndex) else 0L
+                    val input = "$name$size${uri.path}"
+                    val md = MessageDigest.getInstance("MD5")
+                    val digest = md.digest(input.toByteArray())
+                    digest.joinToString("") { "%02x".format(it) }
+                } else {
+                    uri.toString().hashCode().toString()
+                }
+            } ?: uri.toString().hashCode().toString()
+        } catch (e: Exception) {
+            uri.toString().hashCode().toString()
+        }
+    }
+
+    private fun loadFile(uri: Uri) {
+        try {
+            val parcelFileDescriptor = contentResolver.openFileDescriptor(uri, "r")
+            if (parcelFileDescriptor != null) {
+                pdfRenderer?.close() // Close existing renderer to free memory
+                pdfRenderer = PdfRenderer(parcelFileDescriptor)
+                totalPages = pdfRenderer!!.pageCount
+
+                tvTitle.text = getFileName(uri) ?: "PDF Reader"
+                val uriHash = computeUriHash(this, uri)
+                SharedPreferencesManager.saveUri(this, uriHash)
+
+                // Show ViewPager and hide open file text
+                tvOpenFile.visibility = View.GONE
+                viewPager.visibility = View.VISIBLE
+
+                setupPdfViewer()
+                
+                if (BuildConfig.DEBUG_MODE) {
+                    Log.d("MainActivity", "PDF loaded successfully: ${PerformanceHelper.getMemoryInfo(this)}")
+                }
+            }
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG_MODE) {
+                Log.e("MainActivity", "Error loading PDF: ${e.message}")
+            }
+            Toast.makeText(this, "Error opening PDF file", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun getFileName(uri: Uri): String? {
+        return try {
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0) cursor.getString(nameIndex) else null
+                } else null
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun showMenuDialog() {
@@ -177,6 +266,13 @@ class MainActivity : AppCompatActivity() {
             .setCancelable(true)
             .create()
 
+        setupMenuDialog(dialog, dialogView)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.show()
+    }
+    
+    private fun setupMenuDialog(dialog: AlertDialog, dialogView: View) {
+        // Get all views
         val tvOpenFile = dialogView.findViewById<TextView>(R.id.tvOpenFile)
         val btnLTR = dialogView.findViewById<RadioButton>(R.id.btnLTR)
         val btnRTL = dialogView.findViewById<RadioButton>(R.id.btnRTL)
@@ -193,6 +289,20 @@ class MainActivity : AppCompatActivity() {
         val switchGrayscale = dialogView.findViewById<SwitchCompat>(R.id.switchGrayscale)
         val btnClose = dialogView.findViewById<Button>(R.id.btnClose)
 
+        // Set current values
+        setupMenuValues(btnLTR, btnRTL, btnOnePage, btnTwoPage, switchLayout, switchToggle,
+                       btnVertical, btnHorizontal, btnLow, btnMedium, btnHigh, switchInvert, switchGrayscale)
+        
+        // Set listeners
+        setupMenuListeners(dialog, tvOpenFile, btnLTR, btnRTL, btnOnePage, btnTwoPage, switchLayout, switchToggle,
+                          btnVertical, btnHorizontal, btnLow, btnMedium, btnHigh, switchInvert, switchGrayscale, btnClose)
+    }
+    
+    private fun setupMenuValues(btnLTR: RadioButton, btnRTL: RadioButton, btnOnePage: RadioButton, 
+                               btnTwoPage: RadioButton, switchLayout: LinearLayout, switchToggle: SwitchCompat,
+                               btnVertical: RadioButton, btnHorizontal: RadioButton, btnLow: RadioButton,
+                               btnMedium: RadioButton, btnHigh: RadioButton, switchInvert: SwitchCompat,
+                               switchGrayscale: SwitchCompat) {
         btnLTR.isChecked = SharedPreferencesManager.isLeftToRightMode(this)
         btnRTL.isChecked = !SharedPreferencesManager.isLeftToRightMode(this)
         btnOnePage.isChecked = SharedPreferencesManager.isOnePageMode(this)
@@ -204,21 +314,30 @@ class MainActivity : AppCompatActivity() {
         switchInvert.isChecked = SharedPreferencesManager.isInvertEnabled(this)
         switchGrayscale.isChecked = SharedPreferencesManager.isGrayscaleEnabled(this)
 
-        if (SharedPreferencesManager.getResolution(this) == "LOW") {
-            btnLow.isChecked = true
-            btnMedium.isChecked = false
-            btnHigh.isChecked = false
-        } else if (SharedPreferencesManager.getResolution(this) == "MEDIUM") {
-            btnLow.isChecked = false
-            btnMedium.isChecked = true
-            btnHigh.isChecked = false
-        } else if (SharedPreferencesManager.getResolution(this) == "HIGH") {
-            btnLow.isChecked = false
-            btnMedium.isChecked = false
-            btnHigh.isChecked = true
+        when (SharedPreferencesManager.getResolution(this)) {
+            "LOW" -> {
+                btnLow.isChecked = true
+                btnMedium.isChecked = false
+                btnHigh.isChecked = false
+            }
+            "MEDIUM" -> {
+                btnLow.isChecked = false
+                btnMedium.isChecked = true
+                btnHigh.isChecked = false
+            }
+            else -> {
+                btnLow.isChecked = false
+                btnMedium.isChecked = false
+                btnHigh.isChecked = true
+            }
         }
-
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+    }
+    
+    private fun setupMenuListeners(dialog: AlertDialog, tvOpenFile: TextView, btnLTR: RadioButton, btnRTL: RadioButton,
+                                  btnOnePage: RadioButton, btnTwoPage: RadioButton, switchLayout: LinearLayout,
+                                  switchToggle: SwitchCompat, btnVertical: RadioButton, btnHorizontal: RadioButton,
+                                  btnLow: RadioButton, btnMedium: RadioButton, btnHigh: RadioButton,
+                                  switchInvert: SwitchCompat, switchGrayscale: SwitchCompat, btnClose: Button) {
 
         tvOpenFile.setOnClickListener {
             openFilePicker()
@@ -229,8 +348,7 @@ class MainActivity : AppCompatActivity() {
             btnLTR.isChecked = true
             btnRTL.isChecked = false
             SharedPreferencesManager.setLeftToRightMode(this, true)
-            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
-            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            saveCurrentPage()
             setupPdfViewer()
         }
 
@@ -238,8 +356,7 @@ class MainActivity : AppCompatActivity() {
             btnLTR.isChecked = false
             btnRTL.isChecked = true
             SharedPreferencesManager.setLeftToRightMode(this, false)
-            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
-            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            saveCurrentPage()
             setupPdfViewer()
         }
 
@@ -264,13 +381,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         switchToggle.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                SharedPreferencesManager.setCoverPageSeparate(this, true)
-            } else {
-                SharedPreferencesManager.setCoverPageSeparate(this, false)
-            }
-            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
-            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            SharedPreferencesManager.setCoverPageSeparate(this, isChecked)
+            saveCurrentPage()
             setupPdfViewer()
         }
 
@@ -288,12 +400,20 @@ class MainActivity : AppCompatActivity() {
             setupPdfViewer()
         }
 
+        setupResolutionListeners(btnLow, btnMedium, btnHigh)
+        setupFilterListeners(switchInvert, switchGrayscale)
+
+        btnClose.setOnClickListener {
+            dialog.dismiss()
+        }
+    }
+    
+    private fun setupResolutionListeners(btnLow: RadioButton, btnMedium: RadioButton, btnHigh: RadioButton) {
         btnLow.setOnClickListener {
             btnLow.isChecked = true
             btnMedium.isChecked = false
             btnHigh.isChecked = false
-            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
-            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            saveCurrentPage()
             SharedPreferencesManager.setResolution(this, "LOW")
             setupPdfViewer()
         }
@@ -302,8 +422,7 @@ class MainActivity : AppCompatActivity() {
             btnLow.isChecked = false
             btnMedium.isChecked = true
             btnHigh.isChecked = false
-            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
-            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            saveCurrentPage()
             SharedPreferencesManager.setResolution(this, "MEDIUM")
             setupPdfViewer()
         }
@@ -312,31 +431,24 @@ class MainActivity : AppCompatActivity() {
             btnLow.isChecked = false
             btnMedium.isChecked = false
             btnHigh.isChecked = true
-            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
-            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            saveCurrentPage()
             SharedPreferencesManager.setResolution(this, "HIGH")
             setupPdfViewer()
         }
-
+    }
+    
+    private fun setupFilterListeners(switchInvert: SwitchCompat, switchGrayscale: SwitchCompat) {
         switchInvert.setOnCheckedChangeListener { _, isChecked ->
-            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
-            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            saveCurrentPage()
             SharedPreferencesManager.setInvertEnabled(this, isChecked)
             setupPdfViewer()
         }
 
         switchGrayscale.setOnCheckedChangeListener { _, isChecked ->
-            SharedPreferencesManager.savePageNumber(this, viewPager.currentItem)
-            Log.d("PageNumber", "Saved as: ${viewPager.currentItem}")
+            saveCurrentPage()
             SharedPreferencesManager.setGrayscaleEnabled(this, isChecked)
             setupPdfViewer()
         }
-
-        btnClose.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.show()
     }
 
     private fun showJumpDialog() {
@@ -372,7 +484,9 @@ class MainActivity : AppCompatActivity() {
         btnJump.setOnClickListener {
             val page = etPageNumber.text.toString().toIntOrNull() ?: return@setOnClickListener
             val itemIndex = calculateViewPagerIndexFromPage(page)
-            Log.d("PageNumber", "Jump to: $itemIndex")
+            if (BuildConfig.DEBUG_MODE) {
+                Log.d("PageNumber", "Jump to: $itemIndex")
+            }
             viewPager.setCurrentItem(itemIndex, false)
             dialog.dismiss()
         }
@@ -403,7 +517,9 @@ class MainActivity : AppCompatActivity() {
             }
             else -> viewPager.currentItem / 2
         }
-        Log.d("PageNumber", "Saved: $pageNumber")
+        if (BuildConfig.DEBUG_MODE) {
+            Log.d("PageNumber", "Saved: $pageNumber")
+        }
         SharedPreferencesManager.savePageNumber(this, pageNumber)
     }
 
@@ -452,52 +568,6 @@ class MainActivity : AppCompatActivity() {
         startActivityForResult(intent, PICK_PDF_FILE)
     }
 
-    private fun computeUriHash(context: Context, uri: Uri): String {
-        val inputStream = context.contentResolver.openInputStream(uri) ?: return ""
-        val md = MessageDigest.getInstance("SHA-256")
-        val digest = md.digest(inputStream.readBytes())
-        return digest.joinToString("") { "%02x".format(it) }
-    }
-
-    private fun loadFile(uri: Uri) {
-        try {
-            val saveUri = computeUriHash(this, uri)
-            SharedPreferencesManager.saveUri(this, saveUri)
-            tvOpenFile.visibility = View.GONE
-            viewPager.visibility = View.VISIBLE
-
-            val fileDescriptor = contentResolver.openFileDescriptor(uri, "r")
-            if (fileDescriptor != null) {
-                pdfRenderer = PdfRenderer(fileDescriptor)
-                totalPages = pdfRenderer!!.pageCount
-                setupPdfViewer()
-
-                // Update title with file name
-                val fileName = getFileName(uri)
-                tvTitle.text = fileName
-
-                Toast.makeText(this, "PDF loaded successfully", Toast.LENGTH_SHORT).show()
-            }
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error loading PDF: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun getFileName(uri: Uri): String {
-        var fileName = "PDF Document"
-        try {
-            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (nameIndex != -1 && cursor.moveToFirst()) {
-                    fileName = cursor.getString(nameIndex)
-                }
-            }
-        } catch (e: Exception) {
-            // Use default name
-        }
-        return fileName
-    }
-
     private fun setupPdfViewer() {
         val renderer = pdfRenderer ?: return
 
@@ -521,23 +591,7 @@ class MainActivity : AppCompatActivity() {
             View.LAYOUT_DIRECTION_RTL
         }
 
-        if (!isLandscapeMode) {
-            val layoutParams = viewPager.layoutParams as ViewGroup.MarginLayoutParams
-            // Set new width and height
-            layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
-            layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
-            viewPager.layoutParams = layoutParams
-            viewPager.rotation = 0f
-        } else {
-            val layoutParams = viewPager.layoutParams as ViewGroup.MarginLayoutParams
-            // Set new width and height
-            val displayMetrics = Resources.getSystem().displayMetrics
-            layoutParams.width = displayMetrics.heightPixels - 10.dpToPx(this)
-            layoutParams.height = displayMetrics.widthPixels - 10.dpToPx(this)
-            viewPager.layoutParams = layoutParams
-            viewPager.rotation = 90f
-        }
-
+        setupViewPagerLayout(isLandscapeMode)
         seekBar.layoutDirection = viewPager.layoutDirection
 
         // Create adapter
@@ -546,7 +600,9 @@ class MainActivity : AppCompatActivity() {
             isOnePageMode,
             isCoverPageSeparate
         ) {
-            Log.d("MainActivity", "Long Press detected - toggling bars")
+            if (BuildConfig.DEBUG_MODE) {
+                Log.d("MainActivity", "Long Press detected - toggling bars")
+            }
             runOnUiThread {
                 toggleBarsVisibility()
             }
@@ -556,33 +612,58 @@ class MainActivity : AppCompatActivity() {
 
         // Setup page indicator and seekbar
         val currentPage = SharedPreferencesManager.loadPageNumber(this)
-        Log.d("PageNumber", "Loaded as: $currentPage")
+        if (BuildConfig.DEBUG_MODE) {
+            Log.d("PageNumber", "Loaded as: $currentPage")
+        }
 
         viewPager.setCurrentItem(currentPage, false)
         seekBar.max = maxOf(0, totalPages - 1)
         updatePageIndicator(currentPage)
 
-        // Setup ViewPager2 callback
+        setupViewPagerCallback()
+        setupSeekBarListener()
+    }
+    
+    private fun setupViewPagerLayout(isLandscapeMode: Boolean) {
+        val layoutParams = viewPager.layoutParams as ViewGroup.MarginLayoutParams
+        
+        if (!isLandscapeMode) {
+            layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+            layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+            viewPager.rotation = 0f
+        } else {
+            val displayMetrics = Resources.getSystem().displayMetrics
+            layoutParams.width = displayMetrics.heightPixels - 10.dpToPx(this)
+            layoutParams.height = displayMetrics.widthPixels - 10.dpToPx(this)
+            viewPager.rotation = 90f
+        }
+        
+        viewPager.layoutParams = layoutParams
+    }
+    
+    private fun setupViewPagerCallback() {
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 currentPageIndex = position
                 updatePageIndicator(position)
             }
         })
-
-        // Setup SeekBar listener
+    }
+    
+    private fun setupSeekBarListener() {
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    if (SharedPreferencesManager.isOnePageMode(this@MainActivity)) {
-                        viewPager.currentItem = progress
+                    val targetPage = if (SharedPreferencesManager.isOnePageMode(this@MainActivity)) {
+                        progress
                     } else {
                         if (SharedPreferencesManager.isCoverPageSeparate(this@MainActivity)) {
-                            viewPager.currentItem = (progress / 2) + 1
+                            (progress / 2) + 1
                         } else {
-                            viewPager.currentItem = progress / 2
+                            progress / 2
                         }
                     }
+                    viewPager.currentItem = targetPage
                 }
             }
 
@@ -600,16 +681,17 @@ class MainActivity : AppCompatActivity() {
         topBar.visibility = visibility
         bottomBar.visibility = visibility
 
-        // Animate the transition
-        val fadeIn = android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
-        val fadeOut = android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.fade_out)
-
+        // Use cached animations for better performance
         if (barsVisible) {
-            topBar.startAnimation(fadeIn)
-            bottomBar.startAnimation(fadeIn)
+            fadeInAnimation?.let {
+                topBar.startAnimation(it)
+                bottomBar.startAnimation(it)
+            }
         } else {
-            topBar.startAnimation(fadeOut)
-            bottomBar.startAnimation(fadeOut)
+            fadeOutAnimation?.let {
+                topBar.startAnimation(it)
+                bottomBar.startAnimation(it)
+            }
         }
     }
 
@@ -628,6 +710,35 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         pdfRenderer?.close()
+        // Clear cached animations
+        fadeInAnimation = null
+        fadeOutAnimation = null
+        // Clear bitmap pool to free memory
+        PerformanceHelper.clearBitmapPool()
+    }
+    
+    override fun onLowMemory() {
+        super.onLowMemory()
+        if (BuildConfig.DEBUG_MODE) {
+            Log.w("MainActivity", "Low memory detected: ${PerformanceHelper.getMemoryInfo(this)}")
+        }
+        // Clear bitmap pools and force garbage collection
+        PerformanceHelper.clearBitmapPool()
+        PerformanceHelper.forceGarbageCollection()
+    }
+    
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        when (level) {
+            TRIM_MEMORY_RUNNING_MODERATE,
+            TRIM_MEMORY_RUNNING_LOW,
+            TRIM_MEMORY_RUNNING_CRITICAL -> {
+                if (BuildConfig.DEBUG_MODE) {
+                    Log.w("MainActivity", "Memory trim level $level: ${PerformanceHelper.getMemoryInfo(this)}")
+                }
+                PerformanceHelper.clearBitmapPool()
+            }
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -635,28 +746,7 @@ class MainActivity : AppCompatActivity() {
 
         if (requestCode == PICK_PDF_FILE && resultCode == Activity.RESULT_OK) {
             data?.data?.also { uri ->
-                val uriHash = computeUriHash(this, uri)
-                if (uriHash != SharedPreferencesManager.loadUri(this)) {
-                    SharedPreferencesManager.setOnePageMode(this, true)
-                    SharedPreferencesManager.savePageNumber(this, 0)
-                    SharedPreferencesManager.setInvertEnabled(this, false)
-                    SharedPreferencesManager.setGrayscaleEnabled(this, false)
-                    SharedPreferencesManager.setLandscapeOrientation(this, false)
-                }
-
-                if (SharedPreferencesManager.isLandscapeOrientation(this)) {
-                    btnOrientation.setImageResource(R.drawable.mobile_landscape_24)
-                } else {
-                    btnOrientation.setImageResource(R.drawable.mobile_portrait_24)
-                }
-
-                if (SharedPreferencesManager.isOnePageMode(this)) {
-                    tvPageCount.text = "1"
-                } else {
-                    tvPageCount.text = "2"
-                }
-
-                loadFile(uri)
+                handleIntentUri(uri)
             }
         }
     }
@@ -664,12 +754,12 @@ class MainActivity : AppCompatActivity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
-        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            Toast.makeText(this, "Landscape mode", Toast.LENGTH_SHORT).show()
-        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            Toast.makeText(this, "Portrait mode", Toast.LENGTH_SHORT).show()
+        if (BuildConfig.DEBUG_MODE) {
+            if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                Toast.makeText(this, "Landscape mode", Toast.LENGTH_SHORT).show()
+            } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+                Toast.makeText(this, "Portrait mode", Toast.LENGTH_SHORT).show()
+            }
         }
-
     }
-
 }
